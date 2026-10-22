@@ -624,12 +624,12 @@ export default function HairPreviewSection() {
     <div className="w-full max-w-4xl mx-auto px-4 py-8 text-white font-sans">
       {/* ── 1. Clean Header (Branded for "ให้ลุงช่วยเลือกทรง") ── */}
       <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FFC800]/10 border border-[#FFC800]/30 text-[#FFC800] text-sm font-semibold mb-3">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-sm font-semibold mb-3">
           <span>✨</span>
           <span>ให้ลุงช่วยเลือกทรง (Virtual Hair Inpainting)</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
-          ให้ลุงช่วยเลือกทรงผมที่<span className="text-[#FFC800]">เข้ากับคุณ</span>
+          ให้ลุงช่วยเลือกทรงผมที่<span className="text-accent">เข้ากับคุณ</span>
         </h2>
         <p className="text-[#B3B3B3] text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
           ถ่ายภาพหน้าตรง ระบบจะจำลองเปลี่ยนทรงผมใหม่บนหัวของคุณ โดยคงใบหน้า ตัวเสื้อ และฉากหลังเดิมไว้ 100%
@@ -639,7 +639,7 @@ export default function HairPreviewSection() {
       {/* ── 2. Dual Input Method: Camera / Upload (Step 1) ── */}
       {!recommendation && !isLoading && !isAnalyzing && recommendations.length === 0 && (
         <div className="w-full max-w-xl mx-auto mb-10">
-          <div className="bg-[#121216] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl relative">
+          <div className="bg-[#121216] border border-white/10 rounded-[28px] p-6 sm:p-8 shadow-2xl relative">
             <input
               ref={fileInputRef}
               type="file"
@@ -651,7 +651,7 @@ export default function HairPreviewSection() {
 
             {/* Live Camera Viewport */}
             {isCameraActive ? (
-              <div className="relative rounded-2xl overflow-hidden border-2 border-[#FFC800] bg-black shadow-2xl flex flex-col items-center">
+              <div className="relative rounded-2xl overflow-hidden border-2 border-accent bg-black shadow-2xl flex flex-col items-center">
                 <div className="relative w-full h-[360px] sm:h-[420px] bg-black flex items-center justify-center overflow-hidden">
                   {!capturedPreview ? (
                     <>
@@ -667,8 +667,8 @@ export default function HairPreviewSection() {
 
                       {/* Oval face guide overlay */}
                       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                        <div className="w-56 h-72 border-2 border-dashed border-[#FFC800]/80 rounded-[50%] shadow-[0_0_20px_rgba(255,200,0,0.3)] flex items-end justify-center pb-4">
-                          <span className="bg-black/75 backdrop-blur-sm text-[#FFC800] text-[11px] font-semibold px-3 py-1 rounded-full border border-[#FFC800]/30">
+                        <div className="w-56 h-72 border-2 border-dashed border-accent/80 rounded-[50%] shadow-[0_0_20px_rgba(240,138,43,0.3)] flex items-end justify-center pb-4">
+                          <span className="bg-black/75 backdrop-blur-sm text-accent text-[11px] font-semibold px-3 py-1 rounded-full border border-accent/30">
                             จัดใบหน้าให้อยู่ในกรอบ
                           </span>
                         </div>
@@ -676,7 +676,7 @@ export default function HairPreviewSection() {
 
                       {cameraLoading && (
                         <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-3">
-                          <div className="w-9 h-9 border-3 border-[#FFC800] border-t-transparent rounded-full animate-spin" />
+                          <div className="w-9 h-9 border-3 border-accent border-t-transparent rounded-full animate-spin" />
                           <span className="text-sm text-zinc-300">กำลังเปิดกล้อง...</span>
                         </div>
                       )}
@@ -684,7 +684,7 @@ export default function HairPreviewSection() {
                       {/* Scanning spinner overlay inside camera (Step 1) */}
                       {isValidating && (
                         <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3 animate-fade-in">
-                          <div className="w-10 h-10 border-3 border-[#FFC800] border-t-transparent rounded-full animate-spin" />
+                          <div className="w-10 h-10 border-3 border-accent border-t-transparent rounded-full animate-spin" />
                           <span className="text-sm font-bold text-white tracking-wide">
                             กำลังสแกนใบหน้า...
                           </span>
@@ -702,7 +702,7 @@ export default function HairPreviewSection() {
                         alt="รูปที่ถ่ายแล้ว"
                         className="w-full h-full object-contain bg-zinc-950"
                       />
-                      <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-[#FFC800] border border-[#FFC800]/40 flex items-center gap-1.5 shadow-lg">
+                      <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-accent border border-accent/40 flex items-center gap-1.5 shadow-lg">
                         <span>✓</span>
                         <span>ตรวจพบใบหน้าเรียบร้อย</span>
                       </div>
@@ -724,7 +724,7 @@ export default function HairPreviewSection() {
                       <button
                         type="button"
                         onClick={handleCloseCamera}
-                        className="min-h-[48px] px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition active:scale-95"
+                        className="min-h-[48px] px-5 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition active:scale-95"
                       >
                         ยกเลิก
                       </button>
@@ -733,7 +733,7 @@ export default function HairPreviewSection() {
                         type="button"
                         onClick={capturePhoto}
                         disabled={cameraLoading || isValidating}
-                        className="min-h-[52px] px-8 py-3 rounded-2xl bg-gradient-to-r from-[#FFC800] to-[#E6B400] text-black text-base font-extrabold flex items-center gap-2 hover:brightness-110 active:scale-95 shadow-lg shadow-[#FFC800]/30 transition disabled:opacity-50"
+                        className="min-h-[52px] px-8 py-3 rounded-full bg-accent hover:opacity-90 active:scale-95 text-ink text-base font-extrabold flex items-center gap-2 shadow-lg shadow-accent/30 transition disabled:opacity-50"
                       >
                         <span className="text-xl">📸</span>
                         <span>{isValidating ? "กำลังสแกน..." : "กดถ่ายภาพ"}</span>
@@ -742,7 +742,7 @@ export default function HairPreviewSection() {
                       <button
                         type="button"
                         onClick={handleFlipCamera}
-                        className="min-h-[48px] px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition active:scale-95 flex items-center gap-1.5"
+                        className="min-h-[48px] px-5 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition active:scale-95 flex items-center gap-1.5"
                         title="สลับกล้อง"
                       >
                         <span>🔄</span>
@@ -754,7 +754,7 @@ export default function HairPreviewSection() {
                       <button
                         type="button"
                         onClick={handleRetakeCamera}
-                        className="min-h-[48px] px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition active:scale-95 flex items-center gap-1.5"
+                        className="min-h-[48px] px-5 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition active:scale-95 flex items-center gap-1.5"
                       >
                         <span>🔄</span>
                         <span>ถ่ายใหม่</span>
@@ -763,7 +763,7 @@ export default function HairPreviewSection() {
                       <button
                         type="button"
                         onClick={handleConfirmCameraPhoto}
-                        className="min-h-[52px] px-8 py-3 rounded-2xl bg-gradient-to-r from-[#FFC800] to-[#E6B400] text-black text-base font-extrabold flex items-center gap-2 hover:brightness-110 active:scale-95 shadow-lg shadow-[#FFC800]/30 transition"
+                        className="min-h-[52px] px-8 py-3 rounded-full bg-accent hover:opacity-90 active:scale-95 text-ink text-base font-extrabold flex items-center gap-2 shadow-lg shadow-accent/30 transition"
                       >
                         <span>✓</span>
                         <span>ใช้รูปนี้ & วิเคราะห์ทรงผม</span>
@@ -774,8 +774,8 @@ export default function HairPreviewSection() {
               </div>
             ) : isValidating ? (
               /* ── Face Scanning Spinner State (Step 1) ── */
-              <div className="border-2 border-dashed border-[#FFC800]/40 bg-black/60 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-4 min-h-[300px] animate-fade-in">
-                <div className="w-12 h-12 border-3 border-[#FFC800] border-t-transparent rounded-full animate-spin" />
+              <div className="border-2 border-dashed border-accent/40 bg-black/60 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-4 min-h-[300px] animate-fade-in">
+                <div className="w-12 h-12 border-3 border-accent border-t-transparent rounded-full animate-spin" />
                 <div>
                   <h4 className="font-extrabold text-white text-lg mb-1.5">
                     กำลังสแกนใบหน้า...
@@ -790,9 +790,9 @@ export default function HairPreviewSection() {
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
-                className="border-2 border-dashed border-white/20 hover:border-[#FFC800] bg-black/40 hover:bg-[#FFC800]/5 rounded-2xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-200 min-h-[300px]"
+                className="border-2 border-dashed border-white/20 hover:border-accent bg-black/40 hover:bg-accent/5 rounded-2xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-200 min-h-[300px]"
               >
-                <div className="w-16 h-16 rounded-2xl bg-[#FFC800]/10 border border-[#FFC800]/30 flex items-center justify-center mb-4 text-[#FFC800]">
+                <div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/30 flex items-center justify-center mb-4 text-accent">
                   <svg
                     className="w-8 h-8"
                     fill="none"
@@ -826,7 +826,7 @@ export default function HairPreviewSection() {
                   <button
                     type="button"
                     onClick={() => startCamera("user")}
-                    className="min-h-[52px] px-5 py-3 rounded-2xl bg-gradient-to-r from-[#FFC800] to-[#E6B400] text-black font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition shadow-lg shadow-[#FFC800]/20"
+                    className="min-h-[52px] px-5 py-3 rounded-full bg-accent hover:opacity-90 active:scale-95 text-ink font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition shadow-lg shadow-accent/20"
                   >
                     <span className="text-xl">📷</span>
                     <span>กดถ่ายภาพ</span>
@@ -835,7 +835,7 @@ export default function HairPreviewSection() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="min-h-[52px] px-5 py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-95 border border-white/10"
+                    className="min-h-[52px] px-5 py-3 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-95 border border-white/10"
                   >
                     <span className="text-xl">📁</span>
                     <span>เลือกรูปภาพ</span>
@@ -849,8 +849,8 @@ export default function HairPreviewSection() {
 
       {/* ── 3. Step 2 Loading State: Face Analysis via Google Gemini API ── */}
       {isAnalyzing && (
-        <div className="w-full max-w-xl mx-auto my-12 p-8 sm:p-10 rounded-3xl bg-zinc-900/95 border border-[#FFC800]/40 flex flex-col items-center justify-center text-center gap-4 shadow-2xl animate-fade-in">
-          <div className="w-12 h-12 border-3 border-[#FFC800] border-t-transparent rounded-full animate-spin" />
+        <div className="w-full max-w-xl mx-auto my-12 p-8 sm:p-10 rounded-[28px] bg-zinc-900/95 border border-accent/40 flex flex-col items-center justify-center text-center gap-4 shadow-2xl animate-fade-in">
+          <div className="w-12 h-12 border-3 border-accent border-t-transparent rounded-full animate-spin" />
           <div>
             <p className="text-lg sm:text-xl font-bold text-white mb-2">
               ลุงกำลังวิเคราะห์โครงหน้า และคัดเลือกทรงผมที่เหมาะกับคุณ...
@@ -865,11 +865,11 @@ export default function HairPreviewSection() {
       {/* ── 4. Step 2 Selection UI: Hairstyle Recommendations (3 Clickable Cards) ── */}
       {!recommendation && !isLoading && !isAnalyzing && recommendations.length > 0 && (
         <div ref={selectionRef} className="space-y-6 animate-fade-in mb-10">
-          <div className="bg-[#121216] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <div className="bg-[#121216] border border-white/10 rounded-[28px] p-6 sm:p-8 shadow-2xl">
             {/* Top Bar: Step & Detected Face Shape */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
               <div>
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#FFC800]/10 border border-[#FFC800]/30 text-[#FFC800] text-xs font-bold mb-2">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent text-xs font-bold mb-2">
                   <span>✨</span>
                   <span>Step 2: เลือกทรงผมที่โดนใจ</span>
                 </div>
@@ -882,13 +882,13 @@ export default function HairPreviewSection() {
               </div>
 
               {/* Detected Face Shape Display */}
-              <div className="bg-gradient-to-r from-[#FFC800]/20 to-[#FFC800]/5 border border-[#FFC800]/50 px-5 py-3 rounded-2xl flex items-center gap-3 shadow-lg shrink-0">
+              <div className="bg-accent/10 border border-accent/40 px-5 py-3 rounded-2xl flex items-center gap-3 shadow-lg shrink-0">
                 <span className="text-2xl">👤</span>
                 <div>
                   <span className="text-[11px] text-zinc-400 block uppercase font-bold tracking-wider">
                     โครงหน้าของคุณ
                   </span>
-                  <span className="text-base font-extrabold text-[#FFC800]">
+                  <span className="text-base font-extrabold text-accent">
                     {faceShape || "ทรงไข่ (Oval)"}
                   </span>
                 </div>
@@ -905,7 +905,7 @@ export default function HairPreviewSection() {
                     onClick={() => setSelectedStyle(rec)}
                     className={`relative cursor-pointer rounded-2xl p-5 sm:p-6 text-left transition-all duration-200 border-2 flex flex-col justify-between ${
                       isSelected
-                        ? "bg-gradient-to-b from-[#1E1A0A] to-[#121216] border-[#FFC800] shadow-[0_0_25px_rgba(255,200,0,0.25)] scale-[1.02]"
+                        ? "bg-[#181818] border-accent shadow-[0_0_25px_rgba(240,138,43,0.2)] scale-[1.02]"
                         : "bg-[#0E0E12] border-white/10 hover:border-white/30 hover:bg-zinc-900/50"
                     }`}
                   >
@@ -913,9 +913,9 @@ export default function HairPreviewSection() {
                       {/* Top Header of Card */}
                       <div className="flex items-center justify-between mb-3.5">
                         <span
-                          className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
+                          className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                             isSelected
-                              ? "bg-[#FFC800] text-black"
+                              ? "bg-accent text-ink"
                               : "bg-zinc-800 text-zinc-400"
                           }`}
                         >
@@ -926,7 +926,7 @@ export default function HairPreviewSection() {
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${
                             isSelected
-                              ? "border-[#FFC800] bg-[#FFC800]"
+                              ? "border-accent bg-accent"
                               : "border-zinc-600 bg-transparent"
                           }`}
                         >
@@ -941,7 +941,7 @@ export default function HairPreviewSection() {
                       {/* Style Name */}
                       <h4
                         className={`text-base sm:text-lg font-black mb-2.5 leading-snug ${
-                          isSelected ? "text-[#FFC800]" : "text-white"
+                          isSelected ? "text-accent" : "text-white"
                         }`}
                       >
                         {rec.styleName}
@@ -955,7 +955,7 @@ export default function HairPreviewSection() {
 
                     {/* Bottom Selected Indicator */}
                     <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
-                      <span className={isSelected ? "text-[#FFC800] font-semibold" : "text-zinc-500"}>
+                      <span className={isSelected ? "text-accent font-semibold" : "text-zinc-500"}>
                         {isSelected ? "● เลือกทรงนี้อยู่" : "คลิกเพื่อเลือกทรงนี้"}
                       </span>
                       <span className="text-zinc-400">Veera Barber</span>
@@ -970,7 +970,7 @@ export default function HairPreviewSection() {
               <button
                 type="button"
                 onClick={handleReset}
-                className="w-full sm:w-auto min-h-[48px] px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold text-xs sm:text-sm transition active:scale-95 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto min-h-[48px] px-6 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold text-xs sm:text-sm transition active:scale-95 flex items-center justify-center gap-2"
               >
                 <span>🔄</span>
                 <span>เปลี่ยนรูปภาพ / ถ่ายใหม่</span>
@@ -980,7 +980,7 @@ export default function HairPreviewSection() {
                 type="button"
                 disabled={!selectedStyle}
                 onClick={() => generateMockup(userImage!, selectedStyle)}
-                className="w-full sm:flex-1 max-w-md min-h-[52px] px-8 py-3.5 rounded-2xl bg-gradient-to-r from-[#FFC800] via-[#E6B400] to-[#B38F00] text-black font-black text-base flex items-center justify-center gap-2.5 hover:brightness-110 active:scale-95 shadow-xl shadow-[#FFC800]/25 transition disabled:opacity-50"
+                className="w-full sm:flex-1 max-w-md min-h-[52px] px-8 py-3.5 rounded-full bg-accent hover:opacity-90 active:scale-95 text-ink font-black text-base flex items-center justify-center gap-2.5 shadow-xl shadow-accent/25 transition disabled:opacity-50"
               >
                 <span className="text-xl">✨</span>
                 <span>เลือกทรงนี้เพื่อดูภาพจำลอง</span>
@@ -992,8 +992,8 @@ export default function HairPreviewSection() {
 
       {/* ── 5. Step 3 & 4 Loading State: Hair Inpainting Processing (Replicate AI) ── */}
       {isLoading && (
-        <div className="w-full max-w-xl mx-auto my-12 p-8 sm:p-10 rounded-3xl bg-zinc-900/95 border border-[#FFC800]/40 flex flex-col items-center justify-center text-center gap-4 shadow-2xl animate-fade-in">
-          <div className="w-12 h-12 border-3 border-[#FFC800] border-t-transparent rounded-full animate-spin" />
+        <div className="w-full max-w-xl mx-auto my-12 p-8 sm:p-10 rounded-[28px] bg-zinc-900/95 border border-accent/40 flex flex-col items-center justify-center text-center gap-4 shadow-2xl animate-fade-in">
+          <div className="w-12 h-12 border-3 border-accent border-t-transparent rounded-full animate-spin" />
           <div>
             <p className="text-lg sm:text-xl font-bold text-white mb-2">
               กำลังตัดต่อเฉพาะทรงผมด้วย Replicate AI... (ใช้เวลาประมาณ 3-5 วินาที)
@@ -1022,7 +1022,7 @@ export default function HairPreviewSection() {
                   <button
                     type="button"
                     onClick={() => generateMockup(userImage, selectedStyle)}
-                    className="min-h-[44px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#FFC800] to-[#E6B400] text-black font-extrabold text-xs sm:text-sm transition active:scale-95 shadow-md"
+                    className="min-h-[44px] px-5 py-2 rounded-full bg-accent hover:opacity-90 text-ink font-extrabold text-xs sm:text-sm transition active:scale-95 shadow-md"
                   >
                     ลองใหม่อีกครั้ง 🔄
                   </button>
@@ -1030,7 +1030,7 @@ export default function HairPreviewSection() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="min-h-[44px] px-5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs sm:text-sm transition active:scale-95 border border-white/10"
+                  className="min-h-[44px] px-5 py-2 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs sm:text-sm transition active:scale-95 border border-white/10"
                 >
                   เลือกทรงอื่น / เปลี่ยนรูป 📷
                 </button>
@@ -1040,12 +1040,12 @@ export default function HairPreviewSection() {
         </div>
       )}
 
-      {/* ── 6. Step 4 Showcase Display: Gold-Bordered Showcase Card (#FFC800) ── */}
+      {/* ── 6. Step 4 Showcase Display: Accent-Bordered Showcase Card ── */}
       {recommendation && (
         <div ref={resultRef} className="space-y-6 animate-fade-in">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* Left: Original Face */}
-            <div className="bg-[#121216] border border-white/10 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col items-center">
+            <div className="bg-[#121216] border border-white/10 rounded-[28px] p-5 sm:p-6 shadow-xl flex flex-col items-center">
               <span className="text-xs font-semibold text-[#A4A4A4] mb-3 uppercase tracking-wider">
                 รูปหน้าเดิมของคุณ
               </span>
@@ -1061,20 +1061,20 @@ export default function HairPreviewSection() {
               </div>
             </div>
 
-            {/* Right: Gold-Bordered Showcase Card (#FFC800) */}
-            <div className="bg-[#0E0E12] border-2 border-[#FFC800] rounded-3xl p-5 sm:p-6 shadow-[0_0_40px_rgba(255,200,0,0.25)] flex flex-col items-center">
-              <span className="text-xs font-bold text-[#FFC800] mb-3 uppercase tracking-wider flex items-center gap-1.5">
+            {/* Right: Accent-Bordered Showcase Card */}
+            <div className="bg-[#0E0E12] border-2 border-accent rounded-[28px] p-5 sm:p-6 shadow-[0_0_40px_rgba(240,138,43,0.2)] flex flex-col items-center">
+              <span className="text-xs font-bold text-accent mb-3 uppercase tracking-wider flex items-center gap-1.5">
                 <span>✨</span> ทรงผมที่ลุงเนรมิตให้คุณ (Virtual Inpaint)
               </span>
 
-              <div className="w-full h-80 sm:h-96 rounded-2xl overflow-hidden border border-[#FFC800]/50 bg-zinc-950 shadow-lg relative">
+              <div className="w-full h-80 sm:h-96 rounded-2xl overflow-hidden border border-accent/50 bg-zinc-950 shadow-lg relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={recommendation.resultImage}
                   alt="ภาพจำลองทรงผม"
                   className="w-full h-full object-contain"
                 />
-                <div className="absolute bottom-2.5 right-2.5 bg-black/85 backdrop-blur-md px-3 py-1 rounded-md border border-[#FFC800]/40 text-[11px] text-[#FFC800] font-bold">
+                <div className="absolute bottom-2.5 right-2.5 bg-black/85 backdrop-blur-md px-3 py-1 rounded-full border border-accent/40 text-[11px] text-accent font-bold">
                   Veera Barber AI
                 </div>
               </div>
@@ -1084,7 +1084,7 @@ export default function HairPreviewSection() {
                 {/* 1) Suggested Style */}
                 <div className="flex items-center justify-between pb-2 border-b border-white/10">
                   <span className="text-xs text-zinc-400">ทรงผมที่เลือก:</span>
-                  <span className="text-sm sm:text-base font-extrabold text-[#FFC800]">
+                  <span className="text-sm sm:text-base font-extrabold text-accent">
                     {recommendation.suggestedStyle}
                   </span>
                 </div>
@@ -1108,7 +1108,7 @@ export default function HairPreviewSection() {
                 {recommendation.price && (
                   <div className="pt-1 flex items-center justify-between text-xs">
                     <span className="text-zinc-400">ค่าบริการ:</span>
-                    <span className="text-[#FFC800] font-bold">{recommendation.price}</span>
+                    <span className="text-accent font-bold">{recommendation.price}</span>
                   </div>
                 )}
               </div>
@@ -1121,7 +1121,7 @@ export default function HairPreviewSection() {
             <button
               type="button"
               onClick={handleDownloadImage}
-              className="w-full sm:flex-1 min-h-[52px] px-6 py-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-95 border border-white/15 shadow-md"
+              className="w-full sm:flex-1 min-h-[52px] px-6 py-3.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-95 border border-white/15 shadow-md"
             >
               <span>📥</span>
               <span>บันทึกภาพ</span>
@@ -1132,7 +1132,7 @@ export default function HairPreviewSection() {
               href={`/book?service=haircut-adult&style=${encodeURIComponent(
                 recommendation.styleId || "curtain-hair"
               )}&styleName=${encodeURIComponent(recommendation.suggestedStyle)}`}
-              className="w-full sm:flex-1 min-h-[52px] px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#FFC800] via-[#E6B400] to-[#977600] text-black font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#FFC800]/30"
+              className="w-full sm:flex-1 min-h-[52px] px-6 py-3.5 rounded-full bg-accent hover:opacity-90 active:scale-95 text-ink font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-lg shadow-accent/30"
             >
               <span>✂️</span>
               <span>จองคิวทันที</span>
@@ -1142,7 +1142,7 @@ export default function HairPreviewSection() {
             <button
               type="button"
               onClick={handleReset}
-              className="w-full sm:w-auto min-h-[52px] px-5 py-3.5 rounded-xl bg-black/70 hover:bg-zinc-900 text-[#FFC800] border border-[#FFC800]/40 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-95"
+              className="w-full sm:w-auto min-h-[52px] px-6 py-3.5 rounded-full bg-black/70 hover:bg-zinc-900 text-accent border border-accent/40 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-95"
             >
               <span>🔄</span>
               <span>ลองรูปอื่น</span>

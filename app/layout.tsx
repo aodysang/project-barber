@@ -1,12 +1,34 @@
 import type { Metadata } from "next";
-import { Prompt } from "next/font/google";
+import { Prompt, JetBrains_Mono, IBM_Plex_Sans_Thai_Looped, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const promptFont = Prompt({
   weight: ["300", "400", "500", "600", "700"],
   subsets: ["thai", "latin"],
   variable: "--font-prompt",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+const ibmThaiLooped = IBM_Plex_Sans_Thai_Looped({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["thai", "latin"],
+  variable: "--font-thai-looped",
+  display: "swap",
+});
+
+const cormorantGaramond = Cormorant_Garamond({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-serif",
   display: "swap",
 });
 
@@ -22,10 +44,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th" className={`${promptFont.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#000000] text-gray-100 selection:bg-[#FFC800] selection:text-black">
+    <html
+      lang="th"
+      className={`${promptFont.variable} ${jetbrainsMono.variable} ${ibmThaiLooped.variable} ${cormorantGaramond.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col bg-paper text-night selection:bg-accent selection:text-paper font-sans">
         <Navbar />
-        {children}
+        <main className="flex-1">{children}</main>
+        <Footer />
       </body>
     </html>
   );

@@ -5,7 +5,7 @@ export default function BookPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center text-zinc-400">
+        <div className="min-h-screen bg-[#F4F1EC] flex items-center justify-center text-[#6B6B66] font-thai-looped">
           กำลังโหลด...
         </div>
       }

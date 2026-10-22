@@ -1,4 +1,3 @@
-
 "use client";
 
 import HairPreviewSection from "@/components/HairPreviewSection";
@@ -8,34 +7,34 @@ const GEMINI_GEM_URL =
 
 export default function TryPage() {
   return (
-    <main className="min-h-screen py-8 px-4 sm:px-6 flex flex-col items-center bg-[#070709] text-white">
-      {/* Top Mode Selector */}
-      <div className="w-full max-w-xl mb-6 flex p-1.5 rounded-2xl bg-zinc-900/90 border border-white/10 shadow-lg">
+    <main className="min-h-screen py-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center bg-ink text-paper">
+      <div className="w-full max-w-[1200px] flex flex-col items-center">
+        {/* Top Mode Selector */}
+        <div className="w-full max-w-xl mb-8 flex p-1.5 rounded-full bg-night/90 border border-white/10 shadow-lg">
+          {/* ปุ่มลองทรงผม: ใช้งานในเว็บไซต์เดิม */}
+          <button
+            type="button"
+            className="flex-1 min-h-[48px] py-2.5 px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 bg-accent text-ink shadow-md shadow-accent/20 cursor-pointer"
+          >
+            <span>✨</span>
+            <span>วิเคราะห์โครงหน้าและทรงผมด้วยAi</span>
+          </button>
 
-        {/* ปุ่มลองทรงผม: ใช้งานในเว็บไซต์เดิม */}
-        <button
-          type="button"
-          className="flex-1 min-h-[48px] py-2.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFC800] to-[#977600] text-black shadow-md shadow-[#FFC800]/20"
-        >
-          <span>✨</span>
-          <span>วิเคราะห์โครงหน้าและทรงผมด้วยAi</span>
-        </button>
+          {/* ปุ่มสแกนโครงหน้า: เปิด Gemini Gem */}
+          <a
+            href={GEMINI_GEM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 min-h-[48px] py-2.5 px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 text-line/60 hover:text-paper hover:bg-white/5"
+          >
+            <span>📷</span>
+            <span>ลองเปลียนทรงผมด้วยAI</span>
+          </a>
+        </div>
 
-        {/* ปุ่มสแกนโครงหน้า: เปิด Gemini Gem */}
-        <a
-          href={GEMINI_GEM_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 min-h-[48px] py-2.5 px-4 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 text-zinc-400 hover:text-white hover:bg-white/5"
-        >
-          <span>📷</span>
-          <span>ลองเปลียนทรงผมด้วยAI</span>
-        </a>
-
+        {/* ส่วนทดลองทรงผมเดิม */}
+        <HairPreviewSection />
       </div>
-
-      {/* ส่วนทดลองทรงผมเดิม */}
-      <HairPreviewSection />
     </main>
   );
 }

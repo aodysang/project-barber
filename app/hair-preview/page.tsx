@@ -8,8 +8,10 @@ export const metadata = {
 
 export default function HairPreviewPage() {
   return (
-    <main className="min-h-screen py-10 px-4 bg-[#070709] text-white flex flex-col items-center">
-      <HairPreviewSection />
+    <main className="min-h-screen py-16 px-4 sm:px-6 lg:px-8 bg-ink text-paper flex flex-col items-center">
+      <div className="w-full max-w-[1200px] flex flex-col items-center">
+        <HairPreviewSection />
+      </div>
     </main>
   );
 }

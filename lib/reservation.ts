@@ -4,7 +4,10 @@ export type Reservation = {
   customerName: string;
   customerPhone: string;
   barberId: number;
-  hairstyleId: string;
+  hairstyleId?: string;
+  serviceId?: string;
+  addOnIds?: string[];
+  totalPrice?: number;
   date: string; // "YYYY-MM-DD"
   startTime: string; // "HH:mm"
   durationMinutes: number;
@@ -16,6 +19,7 @@ export type Reservation = {
 export const SHOP_OPEN_MINUTES = 8 * 60 + 30; // 08:30
 export const SHOP_CLOSE_MINUTES = 21 * 60; // 21:00
 export const BARBER_COUNT = 4;
+export const ANY_BARBER_ID = 0; // รหัสช่าง "ใครก็ได้ (คิวเร็วที่สุด)"
 export const SLOT_STEP_MINUTES = 30; // ช่วงเวลาที่ให้เลือกจอง ทุก 30 นาที
 
 // แปลง "14:30" เป็นจำนวนนาทีนับจากเที่ยงคืน (870)
