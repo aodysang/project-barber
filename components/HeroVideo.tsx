@@ -6,9 +6,13 @@ export default function HeroVideo() {
     const [showVideo, setShowVideo] = useState(false);
 
     useEffect(() => {
+        const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
         const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const saveData = (navigator as any).connection?.saveData === true;
-        setShowVideo(!reduceMotion && !saveData);
+        const saveData = nav.connection?.saveData === true;
+        const timer = setTimeout(() => {
+            setShowVideo(!reduceMotion && !saveData);
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
 
     return (

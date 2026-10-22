@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { hairstyles } from "@/data/hairstyles";
 import { barbers } from "@/data/barbers";
 
 interface ExtendedHairstyle {
@@ -318,7 +317,7 @@ export default function EditorialTryOnStudio() {
                     Anatomical Diagnosis
                   </p>
                   <p className="text-xs sm:text-sm text-[#07151A] leading-relaxed">
-                    "{selectedStyle.geometryNotes}"
+                    &ldquo;{selectedStyle.geometryNotes}&rdquo;
                   </p>
                 </div>
 

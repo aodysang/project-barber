@@ -149,19 +149,25 @@ export async function POST(req: Request) {
     // 4. ดึงรูปที่ Gemini สร้างออกมา
     // =====================================================
 
-    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const parts = (data?.candidates?.[0]?.content?.parts || []) as Array<{
+      inlineData?: { mimeType?: string; data?: string };
+      inline_data?: { mime_type?: string; data?: string };
+    }>;
     const imagePart = parts.find(
-      (p: any) => p.inlineData || p.inline_data
+      (p) => Boolean(p.inlineData || p.inline_data)
     );
 
-    if (!imagePart) {
+    const outMime =
+      imagePart?.inlineData?.mimeType ||
+      imagePart?.inline_data?.mime_type ||
+      "image/png";
+    const outBase64 =
+      imagePart?.inlineData?.data || imagePart?.inline_data?.data;
+
+    if (!imagePart || !outBase64) {
       console.error("ไม่พบรูปในผลลัพธ์:", JSON.stringify(data, null, 2));
       return fail("no-image-returned", 502);
     }
-
-    const outData = imagePart.inlineData || imagePart.inline_data;
-    const outMime = outData.mimeType || outData.mime_type || "image/png";
-    const outBase64 = outData.data;
 
     const imageDataUrl = `data:${outMime};base64,${outBase64}`;
 

@@ -121,9 +121,11 @@ export default function CameraView({ onConfirm, onRetake }: CameraViewProps) {
     if (countdown === null) return;
 
     if (countdown === 0) {
-      capturePhoto();
-      setCountdown(null);
-      return;
+      const timer = setTimeout(() => {
+        capturePhoto();
+        setCountdown(null);
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
     // รอ 1 วินาทีแล้วลดเลขลง 1

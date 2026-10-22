@@ -7,7 +7,7 @@ interface EditorialNavbarProps {
   onScanClick?: () => void;
 }
 
-export default function EditorialNavbar({ onScanClick }: EditorialNavbarProps) {
+export default function EditorialNavbar({ onScanClick: _onScanClick }: EditorialNavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
