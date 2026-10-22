@@ -128,10 +128,7 @@ export async function POST(req: NextRequest) {
     // Read the target hairstyle local image as Blob
     let targetImageBlob: Blob;
     try {
-      const targetFilePath = path.join(
-        process.cwd(),
-        selectedStyle.localPath
-      );
+      const targetFilePath = path.join(/*turbopackIgnore: true*/ process.cwd(), selectedStyle.localPath);
       const targetBuffer = await fs.readFile(targetFilePath);
       targetImageBlob = new Blob([targetBuffer], { type: "image/jpeg" });
     } catch (fsErr) {

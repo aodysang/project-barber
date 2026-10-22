@@ -121,8 +121,8 @@ async function fetchAutomaticHairMaskFromReplicate(
     const maskUrl = Array.isArray(samOutput)
       ? String(samOutput[0])
       : typeof samOutput === "string"
-      ? samOutput
-      : "";
+        ? samOutput
+        : "";
     if (maskUrl && maskUrl.startsWith("http")) {
       const resp = await fetch(maskUrl);
       if (resp.ok) {
@@ -155,8 +155,8 @@ async function fetchAutomaticHairMaskFromReplicate(
       typeof hairSegOutput === "string"
         ? hairSegOutput
         : Array.isArray(hairSegOutput)
-        ? String(hairSegOutput[0])
-        : "";
+          ? String(hairSegOutput[0])
+          : "";
     if (maskUrl && maskUrl.startsWith("http")) {
       const resp = await fetch(maskUrl);
       if (resp.ok) {
@@ -190,8 +190,8 @@ async function fetchAutomaticHairMaskFromReplicate(
       typeof rmbgOutput === "string"
         ? rmbgOutput
         : Array.isArray(rmbgOutput)
-        ? String(rmbgOutput[0])
-        : "";
+          ? String(rmbgOutput[0])
+          : "";
     if (rmbgUrl && rmbgUrl.startsWith("http")) {
       const resp = await fetch(rmbgUrl);
       if (resp.ok) {
@@ -450,7 +450,7 @@ export async function POST(req: NextRequest) {
     if (!generatedImageUrl) {
       try {
         console.log("Using high-precision hairstyle asset composite fallback...");
-        const fallbackFilePath = path.join(process.cwd(), targetStyle.localFallbackPath);
+        const fallbackFilePath = path.join(/*turbopackIgnore: true*/ process.cwd(), targetStyle.localFallbackPath);
         const styleAssetBuffer = await fs.readFile(fallbackFilePath);
 
         const styleResized = await sharp(styleAssetBuffer)
