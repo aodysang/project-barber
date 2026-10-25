@@ -182,26 +182,50 @@ export default function TryPage() {
 
         {/* ปุ่มหลัก, หมายเหตุ และปุ่มรอง */}
         <div className="w-full max-w-md flex flex-col items-center gap-5 try-animate-fade try-delay-actions">
-          {/* ปุ่มหลัก: เปิด Gemini Gem ในแท็บใหม่ */}
-          <a
-            href={GEMINI_GEM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="เริ่มเลือกทรงกับลุง (เปิดในแท็บใหม่)"
-            className="btn-premium group w-full sm:w-auto min-h-[52px] py-4 px-8 text-base sm:text-lg font-semibold tracking-wide inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8C98A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#081416]"
-          >
-            <span>เริ่มเลือกทรงกับลุง</span>
-            <span
-              className="inline-block transition-transform duration-200 group-hover:translate-x-1 text-xl leading-none text-[#F3DDAE]"
-              aria-hidden="true"
+          {/* แถวปุ่มหลัก 2 ปุ่มเคียงกัน: เลือกทรงกับลุง (Gemini) และ วิเคราะห์โครงหน้า (ฟรี ในเว็บ) */}
+          <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <a
+              href={GEMINI_GEM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="เริ่มเลือกทรงกับลุง (เปิดในแท็บใหม่)"
+              className="btn-premium group flex-1 min-h-[52px] py-4 px-8 text-base sm:text-lg font-semibold tracking-wide inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8C98A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#081416]"
             >
-              →
-            </span>
-          </a>
+              <span>เริ่มเลือกทรงกับลุง</span>
+              <span
+                className="inline-block transition-transform duration-200 group-hover:translate-x-1 text-xl leading-none text-[#F3DDAE]"
+                aria-hidden="true"
+              >
+                →
+              </span>
+            </a>
+
+            <Link
+              href="/face-analysis"
+              aria-label="วิเคราะห์โครงหน้าฟรี ไม่ต้องล็อกอิน"
+              className="group flex-1 min-h-[52px] py-4 px-8 text-base sm:text-lg font-semibold tracking-wide inline-flex items-center justify-center gap-2 rounded-full border border-[rgba(232,201,138,0.45)] text-[#E8C98A] hover:bg-[rgba(232,201,138,0.1)] hover:border-[#E8C98A] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8C98A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#081416]"
+            >
+              <svg
+                className="w-5 h-5 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7.5 3.75H6A2.25 2.25 0 003.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0120.25 6v1.5m0 9V18A2.25 2.25 0 0118 20.25h-1.5m-9 0H6A2.25 2.25 0 013.75 18v-1.5M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <span>วิเคราะห์โครงหน้า</span>
+            </Link>
+          </div>
 
           {/* หมายเหตุใต้ปุ่ม */}
           <div className="flex flex-col items-center gap-1 text-xs sm:text-sm text-[rgba(244,241,236,0.68)] text-center leading-relaxed">
-            <p>ต้องเข้าสู่ระบบด้วยบัญชี Google เพื่อใช้งาน</p>
+            <p>เลือกทรงกับลุง ต้องเข้าสู่ระบบด้วยบัญชี Google · วิเคราะห์โครงหน้า ใช้งานได้ทันทีไม่ต้องล็อกอิน</p>
             <p>
               ระบบจะเปิดในแท็บใหม่ ได้ทรงที่ชอบแล้วกลับมาจองคิวได้ที่นี่
             </p>
