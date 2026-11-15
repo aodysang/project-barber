@@ -15,7 +15,7 @@ interface AnalysisData {
   recommendations: RecommendedStyle[];
 }
 
-// ย่อขนาดรูปให้เล็กและเบาที่สุดสำหรับส่งผ่านเน็ตมือถือ (320px โหลดเสร็จในเสี้ยววินาที)
+// ย่อขนาดรูปให้เล็กและเบาที่สุดสำหรับส่งผ่านเน็ตมือถือ
 function resizeImage(dataUrl: string, maxWidth = 320): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -36,8 +36,8 @@ function resizeImage(dataUrl: string, maxWidth = 320): Promise<string> {
   });
 }
 
-// ฟังก์ชัน fetch พร้อมตัวตัดเวลา (Timeout) ป้องกันหน้าเว็บค้างตลอดกาล
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 20000) {
+// ฟังก์ชัน fetch พร้อมตัวตัดเวลา (Timeout)
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 45000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -131,7 +131,7 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้าด้วย REST API โดยตรง (เร็ว 2-3 วินาที ไม่ค้าง)
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (ปิด Thinking เพื่อให้ตอบกลับใน 1-2 วินาที)
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -145,11 +145,10 @@ export default function AiBarberStudio() {
         return;
       }
 
-      // ย่อรูปเหลือ 320px ส่งไวสุดๆ บนเน็ตมือถือ
       const tinyImage = await resizeImage(capturedImage, 320);
       const base64Data = tinyImage.split(',')[1];
 
-      const promptText = `วิเคราะห์โครงหน้าของบุคคลในภาพนี้ แล้วตอบกลับเป็น JSON เท่านั้น ห้ามมีข้อความอื่นปน ตามโครงสร้างนี้เป๊ะๆ:
+      const promptText = `วิเคราะห์โครงหน้าของบุคคลในภาพนี้ แล้วตอบกลับเป็น JSON เท่านั้น ตามรูปแบบนี้:
 {
   "faceShape": "ประเภทโครงหน้า เช่น หน้ารูปไข่ (Oval), หน้ารูปเพชร (Diamond), หน้ากลม (Round), หน้าเหลี่ยม (Square)",
   "faceDescription": "อธิบายจุดเด่นโครงหน้าสั้นๆ 1 ประโยค",
@@ -178,12 +177,13 @@ export default function AiBarberStudio() {
             ],
             generationConfig: {
               response_mime_type: 'application/json',
-              max_output_tokens: 600,
+              thinkingConfig: { thinkingBudget: 0 }, // ปิดโหมดคิดนานใน REST API ตอบทันทีใน 1-2 วิ
+              maxOutputTokens: 2048,
               temperature: 0.4,
             },
           }),
         },
-        20000 // ตัดเวลาที่ 20 วินาทีถ้าเน็ตหลุด
+        45000
       );
 
       const data = await res.json();
@@ -254,7 +254,7 @@ export default function AiBarberStudio() {
                 ],
               }),
             },
-            35000
+            45000
           );
 
           const data = await res.json();
