@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import Link from 'next/link';
-import { InferenceClient } from '@huggingface/inference';
+import { Client } from '@gradio/client';
 
 interface RecommendedStyle {
   name: string;
@@ -247,7 +247,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: ใช้ SDK ทางการ @huggingface/inference เปลี่ยนเฉพาะทรงผมบนรูปหน้าจริง
+  // 4. ฟังก์ชันที่ 2: เชื่อมต่อ Hugging Face ZeroGPU Space ฟรี 100% เพื่อเปลี่ยนเฉพาะทรงผมบนหน้าจริง
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -256,54 +256,81 @@ export default function AiBarberStudio() {
     setGenError(null);
 
     try {
-      const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN;
-      if (!hfToken) {
-        setGenError(
-          'ไม่พบค่า NEXT_PUBLIC_HF_TOKEN กรุณาใส่รหัส Token ใน .env.local และ GitHub Secrets'
-        );
-        setGeneratingStyle(null);
-        return;
-      }
-
-      const client = new InferenceClient(hfToken);
+      const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}` | undefined;
       const imgBlob = await (await fetch(capturedImage)).blob();
       const editPrompt = `Change ONLY the person's hairstyle to a realistic "${style.englishName}" men's haircut. Keep the exact same face, eyes, nose, mouth, skin tone, clothing, and background identical to the original image.`;
 
-      const modelsToTry = [
-        'black-forest-labs/FLUX.1-Kontext-dev',
-        'Qwen/Qwen-Image-Edit',
+      // เชื่อมต่อไปยัง Hugging Face Spaces ที่รันบน ZeroGPU ฟรี (ไม่หักเครดิต API)
+      const spacesToTry = [
+        {
+          spaceId: 'black-forest-labs/FLUX.1-Kontext-dev',
+          endpoint: '/infer',
+          buildArgs: () => [
+            imgBlob,
+            editPrompt,
+            0, // seed
+            true, // randomize_seed
+            2.5, // guidance_scale
+            20, // steps
+          ],
+        },
+        {
+          spaceId: 'Qwen/Qwen-Image-Edit',
+          endpoint: '/infer',
+          buildArgs: () => [
+            imgBlob,
+            editPrompt,
+            0,
+            true,
+            4.0,
+            20,
+          ],
+        },
       ];
 
-      let success = false;
+      let foundImage = false;
       const errors: string[] = [];
 
-      for (const modelName of modelsToTry) {
+      for (const sp of spacesToTry) {
         try {
-          const resultBlob = await client.imageToImage({
-            model: modelName,
-            inputs: imgBlob,
-            parameters: {
-              prompt: editPrompt,
-            },
-          });
+          const client = await Client.connect(
+            sp.spaceId,
+            hfToken ? { hf_token: hfToken } : undefined
+          );
+          const result = await client.predict(sp.endpoint, sp.buildArgs());
+          const outputData = result?.data as Array<{ url?: string; path?: string } | string>;
 
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            if (typeof reader.result === 'string') {
-              setGeneratedImage(reader.result);
+          const firstItem = outputData?.[0];
+          const outUrl =
+            typeof firstItem === 'string'
+              ? firstItem
+              : firstItem?.url || firstItem?.path;
+
+          if (outUrl) {
+            try {
+              const resImg = await fetch(outUrl);
+              const blobImg = await resImg.blob();
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                setGeneratedImage(typeof reader.result === 'string' ? reader.result : outUrl);
+                setGeneratingStyle(null);
+              };
+              reader.readAsDataURL(blobImg);
+            } catch {
+              setGeneratedImage(outUrl);
+              setGeneratingStyle(null);
             }
-            setGeneratingStyle(null);
-          };
-          reader.readAsDataURL(resultBlob);
-          success = true;
-          break;
+            foundImage = true;
+            break;
+          }
+          errors.push(`[${sp.spaceId}] ไม่พบ URL รูปภาพในการตอบกลับ`);
         } catch (err: unknown) {
-          errors.push(`[${modelName}] ${err instanceof Error ? err.message : String(err)}`);
+          errors.push(`[${sp.spaceId}] ${err instanceof Error ? err.message : String(err)}`);
         }
       }
 
-      if (!success) {
-        setGenError(errors.join(' | ') || 'ไม่สามารถสร้างภาพได้ในขณะนี้');
+      if (!foundImage) {
+        setGenError(errors.join(' | ') || 'คิว ZeroGPU เต็มชั่วคราว กรุณากดลองใหม่อีกครั้งครับ');
         setGeneratingStyle(null);
       }
     } catch (error: unknown) {
