@@ -23,7 +23,7 @@ const steps = [
 ];
 
 export default function TryPage() {
-  const [started, setStarted] = useState<boolean>(false);
+  const [started, setStarted] = useState(false);
 
   return (
     <main
