@@ -118,7 +118,7 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้าแบบรวดเร็ว (2-3 วินาที)
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -128,12 +128,11 @@ export default function AiBarberStudio() {
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) {
-        alert('ไม่พบ API Key กรุณาตั้งค่า NEXT_PUBLIC_GEMINI_API_KEY');
+        alert('ไม่พบ API Key (NEXT_PUBLIC_GEMINI_API_KEY เป็นค่าว่าง) กรุณาเช็ค GitHub Secrets และไฟล์ nextjs.yml');
         return;
       }
 
       const ai = new GoogleGenAI({ apiKey });
-      // ย่อรูปเหลือ 400px เฉพาะตอนวิเคราะห์โครงหน้าเพื่อความเร็วสูงสุด
       const fastImage = await resizeImage(capturedImage, 400);
       const base64Data = fastImage.split(',')[1];
 
@@ -146,7 +145,6 @@ export default function AiBarberStudio() {
           },
         ],
         config: {
-          thinkingConfig: { thinkingBudget: 0 }, // ปิดโหมดคิดนานเพื่อให้ตอบกลับทันที
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
@@ -180,9 +178,10 @@ export default function AiBarberStudio() {
 
       const parsed: AnalysisData = JSON.parse(response.text || '{}');
       setAnalysisData(parsed);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error analyzing face:', error);
-      alert('เกิดข้อผิดพลาดในการวิเคราะห์โครงหน้า กรุณาลองใหม่อีกครั้งครับ');
+      const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
+      alert(`เกิดข้อผิดพลาด: ${errMsg}`);
     } finally {
       setAnalyzing(false);
     }
@@ -196,7 +195,12 @@ export default function AiBarberStudio() {
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      const ai = new GoogleGenAI({ apiKey: apiKey! });
+      if (!apiKey) {
+        alert('ไม่พบ API Key (NEXT_PUBLIC_GEMINI_API_KEY เป็นค่าว่าง)');
+        return;
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       const base64Data = capturedImage.split(',')[1];
 
       const prompt = `Edit this portrait photo to change ONLY the person's hairstyle to a realistic "${style.englishName}" (${style.name}) men's haircut. Keep the person's exact face, facial features, skin tone, expression, clothing, and background completely identical to the original photo. Photorealistic barbershop look, natural hair texture and lighting.`;
@@ -223,9 +227,10 @@ export default function AiBarberStudio() {
       if (!foundImage) {
         alert('AI ไม่สามารถสร้างภาพสำหรับรูปนี้ได้ ลองถ่ายรูปหน้าตรงที่เห็นผมชัดเจนขึ้นอีกนิดนะครับ');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error generating hairstyle image:', error);
-      alert('เกิดข้อผิดพลาดในการ Generate ภาพทรงผม กรุณาลองใหม่อีกครั้งครับ');
+      const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
+      alert(`เกิดข้อผิดพลาดในการสร้างภาพ: ${errMsg}`);
     } finally {
       setGeneratingStyle(null);
     }
