@@ -139,7 +139,7 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า + สกัดลักษณะใบหน้าลูกค้าสำหรับส่งต่อให้ AI วาดภาพ
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -162,7 +162,7 @@ export default function AiBarberStudio() {
 {
   "faceShape": "ประเภทโครงหน้า เช่น หน้ารูปไข่ (Oval), หน้ารูปเพชร (Diamond), หน้ากลม (Round), หน้าเหลี่ยม (Square)",
   "faceDescription": "อธิบายจุดเด่นโครงหน้าสั้นๆ 1 ประโยค",
-  "visualTraits": "Detailed English visual description of this exact person's face for portrait generation (e.g. young Thai man in early 20s, oval face, warm tan skin, thick dark eyebrows, light mustache stubble, friendly expression)",
+  "visualTraits": "Detailed English visual description of this person's face",
   "recommendations": [
     { "name": "ชื่อทรงผมภาษาไทย 1", "englishName": "English Hairstyle Name 1", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
     { "name": "ชื่อทรงผมภาษาไทย 2", "englishName": "English Hairstyle Name 2", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
@@ -248,46 +248,62 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: สร้างภาพจำลองทรงผมฟรี 100% ตลอดชีพด้วย Pollinations AI (Flux)
+  // 4. ฟังก์ชันที่ 2: ส่งรูปใบหน้าจริงของลูกค้าเข้าโมเดล Flux Kontext เพื่อเปลี่ยนเฉพาะทรงผม
   const generateHairstyleImage = async (style: RecommendedStyle) => {
-    if (!capturedImage || !analysisData) return;
+    if (!capturedImage) return;
     setGeneratingStyle(style.name);
     setSelectedStyleName(`${style.name} (${style.englishName})`);
     setGeneratedImage(null);
     setGenError(null);
 
     try {
-      const traits =
-        analysisData.visualTraits ||
-        'young Thai man with natural skin tone and well-proportioned facial features';
+      // 1. แปลงรูปหน้าลูกค้าเป็นไฟล์และอัปโหลดขึ้นโฮสต์ชั่วคราวเพื่อให้ AI ดึงรูปจริงไปแก้ไขได้
+      const base64Res = await fetch(capturedImage);
+      const imgBlob = await base64Res.blob();
+      const formData = new FormData();
+      formData.append('reqtype', 'fileupload');
+      formData.append('time', '1h'); // ลบอัตโนมัติใน 1 ชั่วโมงเพื่อความเป็นส่วนตัว
+      formData.append('fileToUpload', imgBlob, 'face.jpg');
 
-      const prompt = `Close-up realistic portrait photo of a ${traits}, wearing a fresh modern "${style.englishName}" haircut, clean barbershop styling, soft natural studio lighting, sharp focus, 8k photorealistic photography, looking straight at camera`;
+      const uploadRes = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
+        method: 'POST',
+        body: formData,
+      });
 
-      const encodedPrompt = encodeURIComponent(prompt);
-      const randomSeed = Math.floor(Math.random() * 1000000);
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&seed=${randomSeed}&model=flux&nologo=true`;
-
-      // โหลดภาพและแปลงเป็น Data URL เพื่อให้กดปุ่มบันทึกรูปภาพได้ทันที
-      const res = await fetch(imageUrl);
-      if (!res.ok) {
-        throw new Error(`เซิร์ฟเวอร์สร้างภาพไม่ตอบสนอง (HTTP ${res.status})`);
+      if (!uploadRes.ok) {
+        throw new Error('ไม่สามารถอัปโหลดรูปต้นฉบับไปยังระบบประมวลผลได้');
       }
 
-      const blob = await res.blob();
+      const uploadedImageUrl = (await uploadRes.text()).trim();
+
+      // 2. ส่ง URL รูปจริงของลูกค้าเข้าโมเดล kontext (Image-to-Image Editing) เพื่อเปลี่ยนเฉพาะทรงผม
+      const editPrompt = `Change ONLY the person's hairstyle to a realistic "${style.englishName}" men's haircut. Keep the exact same person, same face, facial features, eyes, nose, mouth, skin tone, expression, and background identical to the input image.`;
+      const encodedPrompt = encodeURIComponent(editPrompt);
+      const encodedImageUrl = encodeURIComponent(uploadedImageUrl);
+      const randomSeed = Math.floor(Math.random() * 1000000);
+
+      const resultUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=kontext&image=${encodedImageUrl}&width=512&height=512&seed=${randomSeed}&nologo=true`;
+
+      const genRes = await fetch(resultUrl);
+      if (!genRes.ok) {
+        throw new Error(`เซิร์ฟเวอร์แก้ไขภาพไม่ตอบสนอง (HTTP ${genRes.status})`);
+      }
+
+      const resultBlob = await genRes.blob();
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
           setGeneratedImage(reader.result);
         } else {
-          setGeneratedImage(imageUrl);
+          setGeneratedImage(resultUrl);
         }
         setGeneratingStyle(null);
       };
-      reader.readAsDataURL(blob);
+      reader.readAsDataURL(resultBlob);
     } catch (error: unknown) {
       console.error('Error generating hairstyle image:', error);
       const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
-      setGenError(`เกิดข้อผิดพลาดในการสร้างภาพ: ${errMsg}`);
+      setGenError(`เกิดข้อผิดพลาดในการเปลี่ยนทรงผม: ${errMsg}`);
       setGeneratingStyle(null);
     }
   };
@@ -466,7 +482,7 @@ export default function AiBarberStudio() {
             <div className="py-12 flex flex-col items-center gap-3">
               <div className="w-10 h-10 border-4 border-[#E8C98A] border-t-transparent rounded-full animate-spin" />
               <p className="text-sm text-[#E8C98A]">
-                กำลังวิเคราะห์ใบหน้าของคุณและจำลองทรง {generatingStyle} รอสักครู่ครับ...
+                กำลังดึงรูปใบหน้าเดิมของคุณมาตัดทรง {generatingStyle} รอสักครู่ครับ...
               </p>
             </div>
           ) : genError ? (
