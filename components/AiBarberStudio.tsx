@@ -118,7 +118,7 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้าด้วย gemini-3.8-flash
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -137,7 +137,7 @@ export default function AiBarberStudio() {
       const base64Data = fastImage.split(',')[1];
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: [
           { inlineData: { data: base64Data, mimeType: 'image/jpeg' } },
           {
@@ -205,26 +205,39 @@ export default function AiBarberStudio() {
 
       const prompt = `Edit this portrait photo to change ONLY the person's hairstyle to a realistic "${style.englishName}" (${style.name}) men's haircut. Keep the person's exact face, facial features, skin tone, expression, clothing, and background completely identical to the original photo. Photorealistic barbershop look, natural hair texture and lighting.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: [
-          { inlineData: { data: base64Data, mimeType: 'image/jpeg' } },
-          { text: prompt },
-        ],
-      });
-
+      // ลองเรียกโมเดลสร้างภาพตามลำดับรุ่นที่รองรับ
+      const imageModels = ['gemini-3.8-flash-image', 'gemini-3.8-flash'];
       let foundImage = false;
-      const parts = response.candidates?.[0]?.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData?.data) {
-          const outMime = part.inlineData.mimeType || 'image/png';
-          setGeneratedImage(`data:${outMime};base64,${part.inlineData.data}`);
-          foundImage = true;
-          break;
+      let lastError: unknown = null;
+
+      for (const modelName of imageModels) {
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              { inlineData: { data: base64Data, mimeType: 'image/jpeg' } },
+              { text: prompt },
+            ],
+          });
+
+          const parts = response.candidates?.[0]?.content?.parts || [];
+          for (const part of parts) {
+            if (part.inlineData?.data) {
+              const outMime = part.inlineData.mimeType || 'image/png';
+              setGeneratedImage(`data:${outMime};base64,${part.inlineData.data}`);
+              foundImage = true;
+              break;
+            }
+          }
+
+          if (foundImage) break;
+        } catch (err) {
+          lastError = err;
         }
       }
 
       if (!foundImage) {
+        if (lastError) throw lastError;
         alert('AI ไม่สามารถสร้างภาพสำหรับรูปนี้ได้ ลองถ่ายรูปหน้าตรงที่เห็นผมชัดเจนขึ้นอีกนิดนะครับ');
       }
     } catch (error: unknown) {
