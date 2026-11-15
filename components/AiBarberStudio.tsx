@@ -63,6 +63,7 @@ export default function AiBarberStudio() {
   const [generatingStyle, setGeneratingStyle] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [selectedStyleName, setSelectedStyleName] = useState<string>('');
+  const [genError, setGenError] = useState<string | null>(null);
 
   // 1. เปิดกล้องเว็บแคม
   const startCamera = async () => {
@@ -70,6 +71,7 @@ export default function AiBarberStudio() {
       setCapturedImage(null);
       setAnalysisData(null);
       setGeneratedImage(null);
+      setGenError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
       });
@@ -120,6 +122,7 @@ export default function AiBarberStudio() {
     stopCamera();
     setAnalysisData(null);
     setGeneratedImage(null);
+    setGenError(null);
 
     const reader = new FileReader();
     reader.onload = async () => {
@@ -131,12 +134,13 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (ปิด Thinking เพื่อให้ตอบกลับใน 1-2 วินาที)
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (เร็ว 1-2 วินาที)
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
     setAnalysisData(null);
     setGeneratedImage(null);
+    setGenError(null);
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -177,7 +181,7 @@ export default function AiBarberStudio() {
             ],
             generationConfig: {
               response_mime_type: 'application/json',
-              thinkingConfig: { thinkingBudget: 0 }, // ปิดโหมดคิดนานใน REST API ตอบทันทีใน 1-2 วิ
+              thinkingConfig: { thinkingBudget: 0 },
               maxOutputTokens: 2048,
               temperature: 0.4,
             },
@@ -220,18 +224,25 @@ export default function AiBarberStudio() {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
     setSelectedStyleName(`${style.name} (${style.englishName})`);
+    setGeneratedImage(null);
+    setGenError(null);
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) {
-        alert('ไม่พบ API Key');
+        setGenError('ไม่พบ API Key (NEXT_PUBLIC_GEMINI_API_KEY)');
         return;
       }
 
       const base64Data = capturedImage.split(',')[1];
       const prompt = `Edit this portrait photo to change ONLY the person's hairstyle to a realistic "${style.englishName}" (${style.name}) men's haircut. Keep the person's exact face, facial features, skin tone, expression, clothing, and background completely identical to the original photo. Photorealistic barbershop look, natural hair texture and lighting.`;
 
-      const modelsToTry = ['gemini-3.8-flash-image', 'gemini-3.8-flash'];
+      // ลองเรียกโมเดลสร้างภาพตามลำดับพร้อมบังคับ responseModalities: ["IMAGE"]
+      const modelsToTry = [
+        'gemini-3.8-flash-image',
+        'gemini-3.8-flash',
+        'gemini-2.0-flash-exp-image-generation',
+      ];
       let foundImage = false;
       let lastErrMsg = '';
 
@@ -252,6 +263,9 @@ export default function AiBarberStudio() {
                     ],
                   },
                 ],
+                generationConfig: {
+                  responseModalities: ['IMAGE', 'TEXT'],
+                },
               }),
             },
             45000
@@ -259,7 +273,7 @@ export default function AiBarberStudio() {
 
           const data = await res.json();
           if (!res.ok) {
-            lastErrMsg = data?.error?.message || `HTTP ${res.status}`;
+            lastErrMsg = `[${modelName}] ${data?.error?.message || `HTTP ${res.status}`}`;
             continue;
           }
 
@@ -275,18 +289,19 @@ export default function AiBarberStudio() {
           }
 
           if (foundImage) break;
+          lastErrMsg = `[${modelName}] โมเดลตอบกลับแต่ไม่มีไฟล์รูปภาพ`;
         } catch (err: unknown) {
-          lastErrMsg = err instanceof Error ? err.message : String(err);
+          lastErrMsg = `[${modelName}] ${err instanceof Error ? err.message : String(err)}`;
         }
       }
 
       if (!foundImage) {
-        alert(`ไม่สามารถสร้างภาพได้: ${lastErrMsg || 'โมเดลไม่ส่งรูปภาพกลับมา'}`);
+        setGenError(lastErrMsg || 'ไม่สามารถสร้างภาพทรงผมได้ กรุณาลองใหม่อีกครั้ง');
       }
     } catch (error: unknown) {
       console.error('Error generating hairstyle image:', error);
       const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
-      alert(`เกิดข้อผิดพลาดในการสร้างภาพ: ${errMsg}`);
+      setGenError(`เกิดข้อผิดพลาด: ${errMsg}`);
     } finally {
       setGeneratingStyle(null);
     }
@@ -311,6 +326,7 @@ export default function AiBarberStudio() {
                 setCapturedImage(null);
                 setAnalysisData(null);
                 setGeneratedImage(null);
+                setGenError(null);
               }}
               className="text-xs sm:text-sm text-[#E8C98A] underline hover:opacity-80"
             >
@@ -442,8 +458,8 @@ export default function AiBarberStudio() {
         </section>
       )}
 
-      {/* สเต็ปที่ 3: แสดงภาพผลลัพธ์ที่ Generate ออกมาจากรูปเดิม */}
-      {(generatingStyle || generatedImage) && (
+      {/* สเต็ปที่ 3: แสดงภาพผลลัพธ์ที่ Generate ออกมาจากรูปเดิม หรือแจ้งสาเหตุบนหน้าจอ */}
+      {(generatingStyle || generatedImage || genError) && (
         <section className="rounded-[24px] border border-[#E8C98A]/50 bg-[#071214] p-6 sm:p-8 flex flex-col items-center text-center gap-6">
           <div>
             <span className="text-xs font-semibold tracking-[0.18em] uppercase text-[#E8C98A]">
@@ -460,6 +476,11 @@ export default function AiBarberStudio() {
               <p className="text-sm text-[#E8C98A]">
                 กำลังดึงรูปใบหน้าเดิมของคุณมาตัดทรง {generatingStyle} รอสักครู่ครับ...
               </p>
+            </div>
+          ) : genError ? (
+            <div className="p-4 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-sm max-w-lg">
+              <p className="font-semibold mb-1">ไม่สามารถสร้างภาพได้:</p>
+              <p className="break-words">{genError}</p>
             </div>
           ) : (
             generatedImage && (
