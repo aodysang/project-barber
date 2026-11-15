@@ -36,20 +36,6 @@ function resizeImage(dataUrl: string, maxWidth = 320): Promise<string> {
   });
 }
 
-// ฟังก์ชัน fetch พร้อมตัวตัดเวลา (Timeout)
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 45000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return response;
-  } catch (err) {
-    clearTimeout(id);
-    throw err;
-  }
-}
-
 export default function AiBarberStudio() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -59,6 +45,7 @@ export default function AiBarberStudio() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState<boolean>(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const [generatingStyle, setGeneratingStyle] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -70,6 +57,7 @@ export default function AiBarberStudio() {
     try {
       setCapturedImage(null);
       setAnalysisData(null);
+      setAnalysisError(null);
       setGeneratedImage(null);
       setGenError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -81,7 +69,7 @@ export default function AiBarberStudio() {
       }
     } catch (error) {
       console.error('เปิดกล้องไม่ได้:', error);
-      alert('ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตสิทธิ์กล้อง หรือเลือกอัปโหลดรูปภาพแทนครับ');
+      setAnalysisError('ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตสิทธิ์กล้อง หรือเลือกอัปโหลดรูปภาพแทนครับ');
     }
   };
 
@@ -121,6 +109,7 @@ export default function AiBarberStudio() {
     if (!file) return;
     stopCamera();
     setAnalysisData(null);
+    setAnalysisError(null);
     setGeneratedImage(null);
     setGenError(null);
 
@@ -134,22 +123,23 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (เร็ว 1-2 วินาที)
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (ไม่มีการตัด Timeout + สลับรุ่นโมเดลอัตโนมัติ)
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
     setAnalysisData(null);
+    setAnalysisError(null);
     setGeneratedImage(null);
     setGenError(null);
 
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) {
-        alert('ไม่พบ API Key (NEXT_PUBLIC_GEMINI_API_KEY เป็นค่าว่าง)');
+        setAnalysisError('ไม่พบ API Key (NEXT_PUBLIC_GEMINI_API_KEY เป็นค่าว่าง)');
         return;
       }
 
-      const tinyImage = await resizeImage(capturedImage, 320);
+      const tinyImage = await resizeImage(capturedImage, 256);
       const base64Data = tinyImage.split(',')[1];
 
       const promptText = `วิเคราะห์โครงหน้าของบุคคลในภาพนี้ แล้วตอบกลับเป็น JSON เท่านั้น ตามรูปแบบนี้:
@@ -163,57 +153,62 @@ export default function AiBarberStudio() {
   ]
 }`;
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+      const analysisModels = ['gemini-3.8-flash-lite', 'gemini-3.8-flash'];
+      let parsedResult: AnalysisData | null = null;
+      let lastError = '';
 
-      const res = await fetchWithTimeout(
-        url,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
-                  { text: promptText },
-                ],
+      for (const modelName of analysisModels) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
+                    { text: promptText },
+                  ],
+                },
+              ],
+              generationConfig: {
+                response_mime_type: 'application/json',
+                thinkingConfig: { thinkingBudget: 0 },
+                maxOutputTokens: 1024,
+                temperature: 0.4,
               },
-            ],
-            generationConfig: {
-              response_mime_type: 'application/json',
-              thinkingConfig: { thinkingBudget: 0 },
-              maxOutputTokens: 2048,
-              temperature: 0.4,
-            },
-          }),
-        },
-        45000
-      );
+            }),
+          });
 
-      const data = await res.json();
+          const data = await res.json();
+          if (!res.ok) {
+            lastError = `[${modelName}] ${data?.error?.message || `HTTP ${res.status}`}`;
+            continue;
+          }
 
-      if (!res.ok) {
-        throw new Error(data?.error?.message || `HTTP Error ${res.status}`);
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+          const cleanJson = rawText.replace(/```json|```/g, '').trim();
+          const parsed: AnalysisData = JSON.parse(cleanJson);
+
+          if (parsed.faceShape && parsed.recommendations) {
+            parsedResult = parsed;
+            break;
+          }
+        } catch (err: unknown) {
+          lastError = `[${modelName}] ${err instanceof Error ? err.message : String(err)}`;
+        }
       }
 
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-      const cleanJson = rawText.replace(/```json|```/g, '').trim();
-      const parsed: AnalysisData = JSON.parse(cleanJson);
-
-      if (!parsed.faceShape || !parsed.recommendations) {
-        throw new Error('AI ตอบกลับข้อมูลไม่ครบ กรุณากดลองใหม่อีกครั้ง');
+      if (!parsedResult) {
+        throw new Error(lastError || 'AI ตอบกลับข้อมูลไม่ครบ กรุณากดลองใหม่อีกครั้ง');
       }
 
-      setAnalysisData(parsed);
+      setAnalysisData(parsedResult);
     } catch (error: unknown) {
       console.error('Error analyzing face:', error);
-      const errMsg =
-        error instanceof Error && error.name === 'AbortError'
-          ? 'การเชื่อมต่อใช้เวลานานเกินไป (Timeout) กรุณากดลองใหม่อีกครั้งครับ'
-          : error instanceof Error
-          ? error.message
-          : JSON.stringify(error);
-      alert(`เกิดข้อผิดพลาด: ${errMsg}`);
+      const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
+      setAnalysisError(`เกิดข้อผิดพลาด: ${errMsg}`);
     } finally {
       setAnalyzing(false);
     }
@@ -237,7 +232,6 @@ export default function AiBarberStudio() {
       const base64Data = capturedImage.split(',')[1];
       const prompt = `Edit this portrait photo to change ONLY the person's hairstyle to a realistic "${style.englishName}" (${style.name}) men's haircut. Keep the person's exact face, facial features, skin tone, expression, clothing, and background completely identical to the original photo. Photorealistic barbershop look, natural hair texture and lighting.`;
 
-      // ลองเรียกโมเดลสร้างภาพตามลำดับพร้อมบังคับ responseModalities: ["IMAGE"]
       const modelsToTry = [
         'gemini-3.8-flash-image',
         'gemini-3.8-flash',
@@ -249,27 +243,23 @@ export default function AiBarberStudio() {
       for (const modelName of modelsToTry) {
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-          const res = await fetchWithTimeout(
-            url,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [
-                      { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
-                      { text: prompt },
-                    ],
-                  },
-                ],
-                generationConfig: {
-                  responseModalities: ['IMAGE', 'TEXT'],
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
+                    { text: prompt },
+                  ],
                 },
-              }),
-            },
-            45000
-          );
+              ],
+              generationConfig: {
+                responseModalities: ['IMAGE', 'TEXT'],
+              },
+            }),
+          });
 
           const data = await res.json();
           if (!res.ok) {
@@ -325,6 +315,7 @@ export default function AiBarberStudio() {
               onClick={() => {
                 setCapturedImage(null);
                 setAnalysisData(null);
+                setAnalysisError(null);
                 setGeneratedImage(null);
                 setGenError(null);
               }}
@@ -402,6 +393,12 @@ export default function AiBarberStudio() {
               >
                 {analyzing ? 'กำลังวิเคราะห์โครงหน้า...' : 'วิเคราะห์โครงหน้าเลย →'}
               </button>
+
+              {analysisError && (
+                <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs sm:text-sm w-full">
+                  {analysisError}
+                </div>
+              )}
             </div>
           </div>
         )}
