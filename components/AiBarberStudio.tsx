@@ -12,6 +12,7 @@ interface RecommendedStyle {
 interface AnalysisData {
   faceShape: string;
   faceDescription: string;
+  visualTraits: string;
   recommendations: RecommendedStyle[];
 }
 
@@ -138,7 +139,7 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (ดึงรายชื่อโมเดลจริงที่มีในคีย์มาใช้งาน)
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า + สกัดลักษณะใบหน้าลูกค้าสำหรับส่งต่อให้ AI วาดภาพ
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -161,6 +162,7 @@ export default function AiBarberStudio() {
 {
   "faceShape": "ประเภทโครงหน้า เช่น หน้ารูปไข่ (Oval), หน้ารูปเพชร (Diamond), หน้ากลม (Round), หน้าเหลี่ยม (Square)",
   "faceDescription": "อธิบายจุดเด่นโครงหน้าสั้นๆ 1 ประโยค",
+  "visualTraits": "Detailed English visual description of this exact person's face for portrait generation (e.g. young Thai man in early 20s, oval face, warm tan skin, thick dark eyebrows, light mustache stubble, friendly expression)",
   "recommendations": [
     { "name": "ชื่อทรงผมภาษาไทย 1", "englishName": "English Hairstyle Name 1", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
     { "name": "ชื่อทรงผมภาษาไทย 2", "englishName": "English Hairstyle Name 2", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
@@ -178,7 +180,7 @@ export default function AiBarberStudio() {
       );
 
       const analysisModels =
-        validTextModels.length > 0 ? validTextModels : ['gemini-3.8-flash', 'gemini-2.0-flash'];
+        validTextModels.length > 0 ? validTextModels : ['gemini-3.8-flash', 'gemini-2.5-flash'];
 
       let parsedResult: AnalysisData | null = null;
       const errors: string[] = [];
@@ -246,117 +248,46 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: ค้นหาโมเดลสร้างภาพที่มีใน API Key และ Generate ภาพเปลี่ยนทรงผมจริง
+  // 4. ฟังก์ชันที่ 2: สร้างภาพจำลองทรงผมฟรี 100% ตลอดชีพด้วย Pollinations AI (Flux)
   const generateHairstyleImage = async (style: RecommendedStyle) => {
-    if (!capturedImage) return;
+    if (!capturedImage || !analysisData) return;
     setGeneratingStyle(style.name);
     setSelectedStyleName(`${style.name} (${style.englishName})`);
     setGeneratedImage(null);
     setGenError(null);
 
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!apiKey) {
-        setGenError('ไม่พบ API Key (NEXT_PUBLIC_GEMINI_API_KEY)');
-        return;
+      const traits =
+        analysisData.visualTraits ||
+        'young Thai man with natural skin tone and well-proportioned facial features';
+
+      const prompt = `Close-up realistic portrait photo of a ${traits}, wearing a fresh modern "${style.englishName}" haircut, clean barbershop styling, soft natural studio lighting, sharp focus, 8k photorealistic photography, looking straight at camera`;
+
+      const encodedPrompt = encodeURIComponent(prompt);
+      const randomSeed = Math.floor(Math.random() * 1000000);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&seed=${randomSeed}&model=flux&nologo=true`;
+
+      // โหลดภาพและแปลงเป็น Data URL เพื่อให้กดปุ่มบันทึกรูปภาพได้ทันที
+      const res = await fetch(imageUrl);
+      if (!res.ok) {
+        throw new Error(`เซิร์ฟเวอร์สร้างภาพไม่ตอบสนอง (HTTP ${res.status})`);
       }
 
-      const base64Data = capturedImage.split(',')[1];
-      const prompt = `Edit this portrait photo to change ONLY the person's hairstyle to a realistic "${style.englishName}" (${style.name}) men's haircut. Keep the person's exact face, facial features, skin tone, expression, clothing, and background completely identical to the original photo. Photorealistic barbershop look, natural hair texture and lighting.`;
-
-      const allModels = await getAvailableModels(apiKey);
-      const imageModels = allModels.filter(
-        (name) => name.includes('image') || name.includes('imagen')
-      );
-
-      const modelsToTry =
-        imageModels.length > 0
-          ? imageModels
-          : allModels.filter((n) => n.includes('gemini-3') || n.includes('gemini-2'));
-
-      let foundImage = false;
-      let lastErrMsg = '';
-
-      for (const modelName of modelsToTry) {
-        try {
-          if (modelName.startsWith('imagen')) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${apiKey}`;
-            const res = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                instances: [
-                  {
-                    prompt: `Portrait of a man with ${style.englishName} (${style.name}) hairstyle, realistic barbershop photography`,
-                  },
-                ],
-                parameters: { sampleCount: 1 },
-              }),
-            });
-            const data = await res.json();
-            const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
-            if (res.ok && b64) {
-              setGeneratedImage(`data:image/png;base64,${b64}`);
-              foundImage = true;
-              break;
-            }
-            lastErrMsg = `[${modelName}] ${data?.error?.message || 'ไม่รองรับการแก้ไขภาพ'}`;
-            continue;
-          }
-
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
-                    { text: prompt },
-                  ],
-                },
-              ],
-              generationConfig: {
-                responseModalities: ['IMAGE', 'TEXT'],
-              },
-            }),
-          });
-
-          const data = await res.json();
-          if (!res.ok) {
-            lastErrMsg = `[${modelName}] ${data?.error?.message || `HTTP ${res.status}`}`;
-            continue;
-          }
-
-          const parts = data?.candidates?.[0]?.content?.parts || [];
-          for (const part of parts) {
-            const inline = part.inlineData || part.inline_data;
-            if (inline?.data) {
-              const outMime = inline.mimeType || inline.mime_type || 'image/png';
-              setGeneratedImage(`data:${outMime};base64,${inline.data}`);
-              foundImage = true;
-              break;
-            }
-          }
-
-          if (foundImage) break;
-          lastErrMsg = `[${modelName}] ตอบกลับเฉพาะข้อความ (ไม่ส่งไฟล์ภาพ)`;
-        } catch (err: unknown) {
-          lastErrMsg = `[${modelName}] ${err instanceof Error ? err.message : String(err)}`;
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setGeneratedImage(reader.result);
+        } else {
+          setGeneratedImage(imageUrl);
         }
-      }
-
-      if (!foundImage) {
-        setGenError(
-          `ไม่พบโมเดลที่สร้างภาพได้ในคีย์นี้ (${lastErrMsg}) | โมเดลที่มีในคีย์ของคุณ: ${allModels.join(', ')}`
-        );
-      }
+        setGeneratingStyle(null);
+      };
+      reader.readAsDataURL(blob);
     } catch (error: unknown) {
       console.error('Error generating hairstyle image:', error);
       const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
-      setGenError(`เกิดข้อผิดพลาด: ${errMsg}`);
-    } finally {
+      setGenError(`เกิดข้อผิดพลาดในการสร้างภาพ: ${errMsg}`);
       setGeneratingStyle(null);
     }
   };
@@ -535,7 +466,7 @@ export default function AiBarberStudio() {
             <div className="py-12 flex flex-col items-center gap-3">
               <div className="w-10 h-10 border-4 border-[#E8C98A] border-t-transparent rounded-full animate-spin" />
               <p className="text-sm text-[#E8C98A]">
-                กำลังดึงรูปใบหน้าเดิมของคุณมาตัดทรง {generatingStyle} รอสักครู่ครับ...
+                กำลังวิเคราะห์ใบหน้าของคุณและจำลองทรง {generatingStyle} รอสักครู่ครับ...
               </p>
             </div>
           ) : genError ? (
