@@ -246,7 +246,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: ส่งรูปหน้าจริงเข้า Hugging Face Image-to-Image เพื่อเปลี่ยนเฉพาะทรงผม
+  // 4. ฟังก์ชันที่ 2: ส่งรูปหน้าจริงเข้า Hugging Face Router (fal-ai / replicate) เพื่อเปลี่ยนเฉพาะทรงผม
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -264,37 +264,46 @@ export default function AiBarberStudio() {
         return;
       }
 
-      const base64Data = capturedImage.split(',')[1];
       const editPrompt = `Change ONLY the person's hairstyle to a realistic "${style.englishName}" men's haircut. Keep the exact same face, eyes, nose, mouth, skin tone, clothing, and background identical to the original image.`;
 
-      const hfModels = [
-        'black-forest-labs/FLUX.1-Kontext-dev',
-        'Qwen/Qwen-Image-Edit',
+      const endpoints = [
+        {
+          name: 'FLUX.1-Kontext-dev (fal-ai)',
+          url: 'https://router.huggingface.co/fal-ai/fal-ai/flux-kontext/dev',
+          body: {
+            prompt: editPrompt,
+            image_url: capturedImage,
+          },
+        },
+        {
+          name: 'FLUX.1-Kontext-dev (replicate)',
+          url: 'https://router.huggingface.co/replicate/v1/models/black-forest-labs/flux-kontext-dev/predictions',
+          body: {
+            input: {
+              prompt: editPrompt,
+              input_image: capturedImage,
+            },
+          },
+        },
       ];
 
       let foundImage = false;
       let lastErr = '';
 
-      for (const modelId of hfModels) {
+      for (const ep of endpoints) {
         try {
-          const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
-          const res = await fetch(url, {
+          const res = await fetch(ep.url, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${hfToken}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              inputs: base64Data,
-              parameters: {
-                prompt: editPrompt,
-              },
-            }),
+            body: JSON.stringify(ep.body),
           });
 
           if (!res.ok) {
             const errText = await res.text();
-            lastErr = `[${modelId}] HTTP ${res.status}: ${errText.slice(0, 160)}`;
+            lastErr = `[${ep.name}] HTTP ${res.status}: ${errText.slice(0, 180)}`;
             continue;
           }
 
@@ -312,20 +321,35 @@ export default function AiBarberStudio() {
             foundImage = true;
             break;
           } else {
-            const json = await res.json();
-            const b64Out = json?.image || json?.[0]?.image;
-            if (b64Out) {
-              setGeneratedImage(
-                b64Out.startsWith('data:') ? b64Out : `data:image/png;base64,${b64Out}`
-              );
+            const data = await res.json();
+            const outUrl =
+              data?.images?.[0]?.url ||
+              (Array.isArray(data?.output) ? data.output[0] : data?.output) ||
+              data?.image;
+
+            if (outUrl && typeof outUrl === 'string') {
+              try {
+                const imgRes = await fetch(outUrl);
+                const imgBlob = await imgRes.blob();
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  setGeneratedImage(
+                    typeof reader.result === 'string' ? reader.result : outUrl
+                  );
+                  setGeneratingStyle(null);
+                };
+                reader.readAsDataURL(imgBlob);
+              } catch {
+                setGeneratedImage(outUrl);
+                setGeneratingStyle(null);
+              }
               foundImage = true;
-              setGeneratingStyle(null);
               break;
             }
-            lastErr = `[${modelId}] ไม่พบข้อมูลภาพในการตอบกลับ`;
+            lastErr = `[${ep.name}] ไม่พบ URL รูปภาพในคำตอบ: ${JSON.stringify(data).slice(0, 150)}`;
           }
         } catch (err: unknown) {
-          lastErr = `[${modelId}] ${err instanceof Error ? err.message : String(err)}`;
+          lastErr = `[${ep.name}] ${err instanceof Error ? err.message : String(err)}`;
         }
       }
 
