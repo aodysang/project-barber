@@ -123,7 +123,7 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (ไม่มีการตัด Timeout + สลับรุ่นโมเดลอัตโนมัติ)
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (สลับรุ่นโมเดลสำรองอัตโนมัติเมื่อคิวเต็ม)
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -153,13 +153,30 @@ export default function AiBarberStudio() {
   ]
 }`;
 
-      const analysisModels = ['gemini-3.8-flash-lite', 'gemini-3.8-flash'];
+      const analysisModels = [
+        'gemini-3.8-flash',
+        'gemini-3.8-pro',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+      ];
       let parsedResult: AnalysisData | null = null;
       let lastError = '';
 
       for (const modelName of analysisModels) {
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+          const genConfig: Record<string, unknown> = {
+            response_mime_type: 'application/json',
+            maxOutputTokens: 1024,
+            temperature: 0.4,
+          };
+
+          // ใส่ thinkingConfig เฉพาะโมเดลตระกูล 3.8
+          if (modelName.startsWith('gemini-3.8')) {
+            genConfig.thinkingConfig = { thinkingBudget: 0 };
+          }
+
           const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -172,12 +189,7 @@ export default function AiBarberStudio() {
                   ],
                 },
               ],
-              generationConfig: {
-                response_mime_type: 'application/json',
-                thinkingConfig: { thinkingBudget: 0 },
-                maxOutputTokens: 1024,
-                temperature: 0.4,
-              },
+              generationConfig: genConfig,
             }),
           });
 
