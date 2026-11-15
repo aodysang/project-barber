@@ -2,7 +2,6 @@
 
 import React, { useRef, useState } from 'react';
 import Link from 'next/link';
-import { GoogleGenAI, Type } from '@google/genai';
 
 interface RecommendedStyle {
   name: string;
@@ -16,8 +15,8 @@ interface AnalysisData {
   recommendations: RecommendedStyle[];
 }
 
-// ฟังก์ชันย่อขนาดรูปภาพให้เล็กลงก่อนส่ง AI (ช่วยลดเวลาอัปโหลดได้มากกว่า 80%)
-function resizeImage(dataUrl: string, maxWidth = 512): Promise<string> {
+// ย่อขนาดรูปให้เล็กและเบาที่สุดสำหรับส่งผ่านเน็ตมือถือ (320px โหลดเสร็จในเสี้ยววินาที)
+function resizeImage(dataUrl: string, maxWidth = 320): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -28,13 +27,27 @@ function resizeImage(dataUrl: string, maxWidth = 512): Promise<string> {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
       } else {
         resolve(dataUrl);
       }
     };
     img.src = dataUrl;
   });
+}
+
+// ฟังก์ชัน fetch พร้อมตัวตัดเวลา (Timeout) ป้องกันหน้าเว็บค้างตลอดกาล
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
 }
 
 export default function AiBarberStudio() {
@@ -58,7 +71,7 @@ export default function AiBarberStudio() {
       setAnalysisData(null);
       setGeneratedImage(null);
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 540 } },
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -80,7 +93,7 @@ export default function AiBarberStudio() {
     setCameraActive(false);
   };
 
-  // 2. ถ่ายรูปจากกล้อง (ย่อขนาดอัตโนมัติทันที)
+  // 2. ถ่ายรูปจากกล้อง
   const takeSnapshot = async () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
@@ -92,15 +105,15 @@ export default function AiBarberStudio() {
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const rawDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const rawDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         stopCamera();
-        const smallImage = await resizeImage(rawDataUrl, 640);
+        const smallImage = await resizeImage(rawDataUrl, 512);
         setCapturedImage(smallImage);
       }
     }
   };
 
-  // ทางเลือก: อัปโหลดรูปจากเครื่อง (ย่อขนาดอัตโนมัติทันที)
+  // ทางเลือก: อัปโหลดรูปจากเครื่อง
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -111,14 +124,14 @@ export default function AiBarberStudio() {
     const reader = new FileReader();
     reader.onload = async () => {
       if (typeof reader.result === 'string') {
-        const smallImage = await resizeImage(reader.result, 640);
+        const smallImage = await resizeImage(reader.result, 512);
         setCapturedImage(smallImage);
       }
     };
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้าด้วย gemini-3.8-flash
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้าด้วย REST API โดยตรง (เร็ว 2-3 วินาที ไม่ค้าง)
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -128,59 +141,74 @@ export default function AiBarberStudio() {
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) {
-        alert('ไม่พบ API Key (NEXT_PUBLIC_GEMINI_API_KEY เป็นค่าว่าง) กรุณาเช็ค GitHub Secrets และไฟล์ nextjs.yml');
+        alert('ไม่พบ API Key (NEXT_PUBLIC_GEMINI_API_KEY เป็นค่าว่าง)');
         return;
       }
 
-      const ai = new GoogleGenAI({ apiKey });
-      const fastImage = await resizeImage(capturedImage, 400);
-      const base64Data = fastImage.split(',')[1];
+      // ย่อรูปเหลือ 320px ส่งไวสุดๆ บนเน็ตมือถือ
+      const tinyImage = await resizeImage(capturedImage, 320);
+      const base64Data = tinyImage.split(',')[1];
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: [
-          { inlineData: { data: base64Data, mimeType: 'image/jpeg' } },
-          {
-            text: 'วิเคราะห์โครงหน้าของคนในภาพ (เช่น หน้ารูปไข่, หน้ารูปเพชร, หน้ากลม, หน้าเหลี่ยม) อธิบายสั้นๆ 1 ประโยค และแนะนำทรงผมชาย 3 ทรงที่เข้ากับโครงหน้านี้',
-          },
-        ],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              faceShape: {
-                type: Type.STRING,
-                description: 'ประเภทโครงหน้า เช่น หน้ารูปไข่ (Oval), หน้ารูปเพชร (Diamond), หน้ากลม (Round)',
+      const promptText = `วิเคราะห์โครงหน้าของบุคคลในภาพนี้ แล้วตอบกลับเป็น JSON เท่านั้น ห้ามมีข้อความอื่นปน ตามโครงสร้างนี้เป๊ะๆ:
+{
+  "faceShape": "ประเภทโครงหน้า เช่น หน้ารูปไข่ (Oval), หน้ารูปเพชร (Diamond), หน้ากลม (Round), หน้าเหลี่ยม (Square)",
+  "faceDescription": "อธิบายจุดเด่นโครงหน้าสั้นๆ 1 ประโยค",
+  "recommendations": [
+    { "name": "ชื่อทรงผมภาษาไทย 1", "englishName": "English Hairstyle Name 1", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
+    { "name": "ชื่อทรงผมภาษาไทย 2", "englishName": "English Hairstyle Name 2", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
+    { "name": "ชื่อทรงผมภาษาไทย 3", "englishName": "English Hairstyle Name 3", "reason": "เหตุผลสั้นๆ 1 ประโยค" }
+  ]
+}`;
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+
+      const res = await fetchWithTimeout(
+        url,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
+                  { text: promptText },
+                ],
               },
-              faceDescription: {
-                type: Type.STRING,
-                description: 'คำอธิบายจุดเด่นโครงหน้าแบบกระชับ 1 ประโยค',
-              },
-              recommendations: {
-                type: Type.ARRAY,
-                description: 'รายการทรงผมที่แนะนำ 3 ทรง',
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    name: { type: Type.STRING, description: 'ชื่อทรงผมภาษาไทย' },
-                    englishName: { type: Type.STRING, description: 'ชื่อทรงผมภาษาอังกฤษ' },
-                    reason: { type: Type.STRING, description: 'เหตุผลสั้นๆ 1 ประโยค' },
-                  },
-                  required: ['name', 'englishName', 'reason'],
-                },
-              },
+            ],
+            generationConfig: {
+              response_mime_type: 'application/json',
+              max_output_tokens: 600,
+              temperature: 0.4,
             },
-            required: ['faceShape', 'faceDescription', 'recommendations'],
-          },
+          }),
         },
-      });
+        20000 // ตัดเวลาที่ 20 วินาทีถ้าเน็ตหลุด
+      );
 
-      const parsed: AnalysisData = JSON.parse(response.text || '{}');
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error?.message || `HTTP Error ${res.status}`);
+      }
+
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      const cleanJson = rawText.replace(/```json|```/g, '').trim();
+      const parsed: AnalysisData = JSON.parse(cleanJson);
+
+      if (!parsed.faceShape || !parsed.recommendations) {
+        throw new Error('AI ตอบกลับข้อมูลไม่ครบ กรุณากดลองใหม่อีกครั้ง');
+      }
+
       setAnalysisData(parsed);
     } catch (error: unknown) {
       console.error('Error analyzing face:', error);
-      const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
+      const errMsg =
+        error instanceof Error && error.name === 'AbortError'
+          ? 'การเชื่อมต่อใช้เวลานานเกินไป (Timeout) กรุณากดลองใหม่อีกครั้งครับ'
+          : error instanceof Error
+          ? error.message
+          : JSON.stringify(error);
       alert(`เกิดข้อผิดพลาด: ${errMsg}`);
     } finally {
       setAnalyzing(false);
@@ -196,49 +224,64 @@ export default function AiBarberStudio() {
     try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!apiKey) {
-        alert('ไม่พบ API Key (NEXT_PUBLIC_GEMINI_API_KEY เป็นค่าว่าง)');
+        alert('ไม่พบ API Key');
         return;
       }
 
-      const ai = new GoogleGenAI({ apiKey });
       const base64Data = capturedImage.split(',')[1];
-
       const prompt = `Edit this portrait photo to change ONLY the person's hairstyle to a realistic "${style.englishName}" (${style.name}) men's haircut. Keep the person's exact face, facial features, skin tone, expression, clothing, and background completely identical to the original photo. Photorealistic barbershop look, natural hair texture and lighting.`;
 
-      // ลองเรียกโมเดลสร้างภาพตามลำดับรุ่นที่รองรับ
-      const imageModels = ['gemini-3.8-flash-image', 'gemini-3.8-flash'];
+      const modelsToTry = ['gemini-3.8-flash-image', 'gemini-3.8-flash'];
       let foundImage = false;
-      let lastError: unknown = null;
+      let lastErrMsg = '';
 
-      for (const modelName of imageModels) {
+      for (const modelName of modelsToTry) {
         try {
-          const response = await ai.models.generateContent({
-            model: modelName,
-            contents: [
-              { inlineData: { data: base64Data, mimeType: 'image/jpeg' } },
-              { text: prompt },
-            ],
-          });
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+          const res = await fetchWithTimeout(
+            url,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      { inline_data: { mime_type: 'image/jpeg', data: base64Data } },
+                      { text: prompt },
+                    ],
+                  },
+                ],
+              }),
+            },
+            35000
+          );
 
-          const parts = response.candidates?.[0]?.content?.parts || [];
+          const data = await res.json();
+          if (!res.ok) {
+            lastErrMsg = data?.error?.message || `HTTP ${res.status}`;
+            continue;
+          }
+
+          const parts = data?.candidates?.[0]?.content?.parts || [];
           for (const part of parts) {
-            if (part.inlineData?.data) {
-              const outMime = part.inlineData.mimeType || 'image/png';
-              setGeneratedImage(`data:${outMime};base64,${part.inlineData.data}`);
+            const inline = part.inlineData || part.inline_data;
+            if (inline?.data) {
+              const outMime = inline.mimeType || inline.mime_type || 'image/png';
+              setGeneratedImage(`data:${outMime};base64,${inline.data}`);
               foundImage = true;
               break;
             }
           }
 
           if (foundImage) break;
-        } catch (err) {
-          lastError = err;
+        } catch (err: unknown) {
+          lastErrMsg = err instanceof Error ? err.message : String(err);
         }
       }
 
       if (!foundImage) {
-        if (lastError) throw lastError;
-        alert('AI ไม่สามารถสร้างภาพสำหรับรูปนี้ได้ ลองถ่ายรูปหน้าตรงที่เห็นผมชัดเจนขึ้นอีกนิดนะครับ');
+        alert(`ไม่สามารถสร้างภาพได้: ${lastErrMsg || 'โมเดลไม่ส่งรูปภาพกลับมา'}`);
       }
     } catch (error: unknown) {
       console.error('Error generating hairstyle image:', error);
