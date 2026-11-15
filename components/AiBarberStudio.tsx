@@ -172,7 +172,6 @@ export default function AiBarberStudio() {
             temperature: 0.4,
           };
 
-          // ใส่ thinkingConfig เฉพาะโมเดลตระกูล 3.8
           if (modelName.startsWith('gemini-3.8')) {
             genConfig.thinkingConfig = { thinkingBudget: 0 };
           }
@@ -226,7 +225,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: ดึงรูปเดิมที่ถ่ายไว้ + ชื่อทรงที่แนะนำ ไป Generate ภาพเปลี่ยนทรงผมจริง
+  // 4. ฟังก์ชันที่ 2: ค้นหาโมเดลสร้างภาพที่มีใน API Key และ Generate ภาพเปลี่ยนทรงผมจริง
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -244,16 +243,55 @@ export default function AiBarberStudio() {
       const base64Data = capturedImage.split(',')[1];
       const prompt = `Edit this portrait photo to change ONLY the person's hairstyle to a realistic "${style.englishName}" (${style.name}) men's haircut. Keep the person's exact face, facial features, skin tone, expression, clothing, and background completely identical to the original photo. Photorealistic barbershop look, natural hair texture and lighting.`;
 
-      const modelsToTry = [
-        'gemini-3.8-flash-image',
-        'gemini-3.8-flash',
-        'gemini-2.0-flash-exp-image-generation',
-      ];
+      // 1. ดึงรายชื่อโมเดลทั้งหมดที่ API Key นี้มีสิทธิ์ใช้งานจริง
+      const listRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+      );
+      const listData = await listRes.json();
+      const allModels: string[] = (listData?.models || [])
+        .map((m: { name?: string }) => (m.name || '').replace('models/', ''))
+        .filter(Boolean);
+
+      // คัดเฉพาะโมเดลที่รองรับการสร้างภาพ (image / imagen)
+      const imageModels = allModels.filter(
+        (name) => name.includes('image') || name.includes('imagen')
+      );
+
+      const modelsToTry =
+        imageModels.length > 0
+          ? imageModels
+          : allModels.filter((n) => n.includes('gemini-3') || n.includes('gemini-2.5'));
+
       let foundImage = false;
       let lastErrMsg = '';
 
       for (const modelName of modelsToTry) {
         try {
+          if (modelName.startsWith('imagen')) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${apiKey}`;
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                instances: [
+                  {
+                    prompt: `Portrait of a man with ${style.englishName} (${style.name}) hairstyle, realistic barbershop photography`,
+                  },
+                ],
+                parameters: { sampleCount: 1 },
+              }),
+            });
+            const data = await res.json();
+            const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
+            if (res.ok && b64) {
+              setGeneratedImage(`data:image/png;base64,${b64}`);
+              foundImage = true;
+              break;
+            }
+            lastErrMsg = `[${modelName}] ${data?.error?.message || 'ไม่รองรับการแก้ไขภาพ'}`;
+            continue;
+          }
+
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
           const res = await fetch(url, {
             method: 'POST',
@@ -291,14 +329,16 @@ export default function AiBarberStudio() {
           }
 
           if (foundImage) break;
-          lastErrMsg = `[${modelName}] โมเดลตอบกลับแต่ไม่มีไฟล์รูปภาพ`;
+          lastErrMsg = `[${modelName}] ตอบกลับเฉพาะข้อความ (ไม่ส่งไฟล์ภาพ)`;
         } catch (err: unknown) {
           lastErrMsg = `[${modelName}] ${err instanceof Error ? err.message : String(err)}`;
         }
       }
 
       if (!foundImage) {
-        setGenError(lastErrMsg || 'ไม่สามารถสร้างภาพทรงผมได้ กรุณาลองใหม่อีกครั้ง');
+        setGenError(
+          `ไม่พบโมเดลที่สร้างภาพได้ในคีย์นี้ (${lastErrMsg}) | โมเดลที่มีในคีย์ของคุณ: ${allModels.join(', ')}`
+        );
       }
     } catch (error: unknown) {
       console.error('Error generating hairstyle image:', error);
