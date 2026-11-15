@@ -36,6 +36,21 @@ function resizeImage(dataUrl: string, maxWidth = 320): Promise<string> {
   });
 }
 
+// ดึงรายชื่อโมเดลทั้งหมดที่มีอยู่ใน API Key ของผู้ใช้
+async function getAvailableModels(apiKey: string): Promise<string[]> {
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+    );
+    const data = await res.json();
+    return (data?.models || [])
+      .map((m: { name?: string }) => (m.name || '').replace('models/', ''))
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export default function AiBarberStudio() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -123,7 +138,7 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (สลับรุ่นโมเดลสำรองอัตโนมัติเมื่อคิวเต็ม)
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า (ดึงรายชื่อโมเดลจริงที่มีในคีย์มาใช้งาน)
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -153,14 +168,20 @@ export default function AiBarberStudio() {
   ]
 }`;
 
-      const analysisModels = [
-        'gemini-3.8-flash',
-        'gemini-3.8-pro',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-      ];
+      const allModels = await getAvailableModels(apiKey);
+      const validTextModels = allModels.filter(
+        (n) =>
+          (n.includes('gemini-3') || n.includes('gemini-2.5') || n.includes('gemini-2.0')) &&
+          !n.includes('image') &&
+          !n.includes('tts') &&
+          !n.includes('embedding')
+      );
+
+      const analysisModels =
+        validTextModels.length > 0 ? validTextModels : ['gemini-3.8-flash', 'gemini-2.0-flash'];
+
       let parsedResult: AnalysisData | null = null;
-      let lastError = '';
+      const errors: string[] = [];
 
       for (const modelName of analysisModels) {
         try {
@@ -172,7 +193,7 @@ export default function AiBarberStudio() {
             temperature: 0.4,
           };
 
-          if (modelName.startsWith('gemini-3.8')) {
+          if (modelName.startsWith('gemini-3')) {
             genConfig.thinkingConfig = { thinkingBudget: 0 };
           }
 
@@ -194,7 +215,7 @@ export default function AiBarberStudio() {
 
           const data = await res.json();
           if (!res.ok) {
-            lastError = `[${modelName}] ${data?.error?.message || `HTTP ${res.status}`}`;
+            errors.push(`[${modelName}] ${data?.error?.message || `HTTP ${res.status}`}`);
             continue;
           }
 
@@ -207,12 +228,12 @@ export default function AiBarberStudio() {
             break;
           }
         } catch (err: unknown) {
-          lastError = `[${modelName}] ${err instanceof Error ? err.message : String(err)}`;
+          errors.push(`[${modelName}] ${err instanceof Error ? err.message : String(err)}`);
         }
       }
 
       if (!parsedResult) {
-        throw new Error(lastError || 'AI ตอบกลับข้อมูลไม่ครบ กรุณากดลองใหม่อีกครั้ง');
+        throw new Error(errors.join(' | ') || 'AI ตอบกลับข้อมูลไม่ครบ กรุณากดลองใหม่อีกครั้ง');
       }
 
       setAnalysisData(parsedResult);
@@ -243,16 +264,7 @@ export default function AiBarberStudio() {
       const base64Data = capturedImage.split(',')[1];
       const prompt = `Edit this portrait photo to change ONLY the person's hairstyle to a realistic "${style.englishName}" (${style.name}) men's haircut. Keep the person's exact face, facial features, skin tone, expression, clothing, and background completely identical to the original photo. Photorealistic barbershop look, natural hair texture and lighting.`;
 
-      // 1. ดึงรายชื่อโมเดลทั้งหมดที่ API Key นี้มีสิทธิ์ใช้งานจริง
-      const listRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
-      );
-      const listData = await listRes.json();
-      const allModels: string[] = (listData?.models || [])
-        .map((m: { name?: string }) => (m.name || '').replace('models/', ''))
-        .filter(Boolean);
-
-      // คัดเฉพาะโมเดลที่รองรับการสร้างภาพ (image / imagen)
+      const allModels = await getAvailableModels(apiKey);
       const imageModels = allModels.filter(
         (name) => name.includes('image') || name.includes('imagen')
       );
@@ -260,7 +272,7 @@ export default function AiBarberStudio() {
       const modelsToTry =
         imageModels.length > 0
           ? imageModels
-          : allModels.filter((n) => n.includes('gemini-3') || n.includes('gemini-2.5'));
+          : allModels.filter((n) => n.includes('gemini-3') || n.includes('gemini-2'));
 
       let foundImage = false;
       let lastErrMsg = '';
@@ -447,7 +459,7 @@ export default function AiBarberStudio() {
               </button>
 
               {analysisError && (
-                <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs sm:text-sm w-full">
+                <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs sm:text-sm w-full break-words">
                   {analysisError}
                 </div>
               )}
