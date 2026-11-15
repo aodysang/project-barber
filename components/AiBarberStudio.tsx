@@ -12,12 +12,11 @@ interface RecommendedStyle {
 interface AnalysisData {
   faceShape: string;
   faceDescription: string;
-  visualTraits: string;
   recommendations: RecommendedStyle[];
 }
 
-// ย่อขนาดรูปให้เล็กและเบาที่สุดสำหรับส่งผ่านเน็ตมือถือ
-function resizeImage(dataUrl: string, maxWidth = 320): Promise<string> {
+// ย่อขนาดรูปให้พอเหมาะสำหรับส่งผ่านเน็ตมือถือและประมวลผลภาพ
+function resizeImage(dataUrl: string, maxWidth = 512): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -28,7 +27,7 @@ function resizeImage(dataUrl: string, maxWidth = 320): Promise<string> {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.75));
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       } else {
         resolve(dataUrl);
       }
@@ -37,7 +36,7 @@ function resizeImage(dataUrl: string, maxWidth = 320): Promise<string> {
   });
 }
 
-// ดึงรายชื่อโมเดลทั้งหมดที่มีอยู่ใน API Key ของผู้ใช้
+// ดึงรายชื่อโมเดลทั้งหมดที่มีอยู่ใน Gemini API Key
 async function getAvailableModels(apiKey: string): Promise<string[]> {
   try {
     const res = await fetch(
@@ -111,7 +110,7 @@ export default function AiBarberStudio() {
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const rawDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        const rawDataUrl = canvas.toDataURL('image/jpeg', 0.85);
         stopCamera();
         const smallImage = await resizeImage(rawDataUrl, 512);
         setCapturedImage(smallImage);
@@ -139,7 +138,7 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้า
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้าด้วย Gemini
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -162,7 +161,6 @@ export default function AiBarberStudio() {
 {
   "faceShape": "ประเภทโครงหน้า เช่น หน้ารูปไข่ (Oval), หน้ารูปเพชร (Diamond), หน้ากลม (Round), หน้าเหลี่ยม (Square)",
   "faceDescription": "อธิบายจุดเด่นโครงหน้าสั้นๆ 1 ประโยค",
-  "visualTraits": "Detailed English visual description of this person's face",
   "recommendations": [
     { "name": "ชื่อทรงผมภาษาไทย 1", "englishName": "English Hairstyle Name 1", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
     { "name": "ชื่อทรงผมภาษาไทย 2", "englishName": "English Hairstyle Name 2", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
@@ -248,7 +246,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: ส่งรูปใบหน้าจริงของลูกค้าเข้าโมเดล Flux Kontext เพื่อเปลี่ยนเฉพาะทรงผม
+  // 4. ฟังก์ชันที่ 2: ส่งรูปหน้าจริงเข้า Hugging Face Image-to-Image เพื่อเปลี่ยนเฉพาะทรงผม
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -257,53 +255,88 @@ export default function AiBarberStudio() {
     setGenError(null);
 
     try {
-      // 1. แปลงรูปหน้าลูกค้าเป็นไฟล์และอัปโหลดขึ้นโฮสต์ชั่วคราวเพื่อให้ AI ดึงรูปจริงไปแก้ไขได้
-      const base64Res = await fetch(capturedImage);
-      const imgBlob = await base64Res.blob();
-      const formData = new FormData();
-      formData.append('reqtype', 'fileupload');
-      formData.append('time', '1h'); // ลบอัตโนมัติใน 1 ชั่วโมงเพื่อความเป็นส่วนตัว
-      formData.append('fileToUpload', imgBlob, 'face.jpg');
-
-      const uploadRes = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error('ไม่สามารถอัปโหลดรูปต้นฉบับไปยังระบบประมวลผลได้');
-      }
-
-      const uploadedImageUrl = (await uploadRes.text()).trim();
-
-      // 2. ส่ง URL รูปจริงของลูกค้าเข้าโมเดล kontext (Image-to-Image Editing) เพื่อเปลี่ยนเฉพาะทรงผม
-      const editPrompt = `Change ONLY the person's hairstyle to a realistic "${style.englishName}" men's haircut. Keep the exact same person, same face, facial features, eyes, nose, mouth, skin tone, expression, and background identical to the input image.`;
-      const encodedPrompt = encodeURIComponent(editPrompt);
-      const encodedImageUrl = encodeURIComponent(uploadedImageUrl);
-      const randomSeed = Math.floor(Math.random() * 1000000);
-
-      const resultUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=kontext&image=${encodedImageUrl}&width=512&height=512&seed=${randomSeed}&nologo=true`;
-
-      const genRes = await fetch(resultUrl);
-      if (!genRes.ok) {
-        throw new Error(`เซิร์ฟเวอร์แก้ไขภาพไม่ตอบสนอง (HTTP ${genRes.status})`);
-      }
-
-      const resultBlob = await genRes.blob();
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setGeneratedImage(reader.result);
-        } else {
-          setGeneratedImage(resultUrl);
-        }
+      const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN;
+      if (!hfToken) {
+        setGenError(
+          'ไม่พบค่า NEXT_PUBLIC_HF_TOKEN กรุณาสร้าง Token ฟรีจาก huggingface.co/settings/tokens และใส่ใน .env.local + GitHub Secrets'
+        );
         setGeneratingStyle(null);
-      };
-      reader.readAsDataURL(resultBlob);
+        return;
+      }
+
+      const base64Data = capturedImage.split(',')[1];
+      const editPrompt = `Change ONLY the person's hairstyle to a realistic "${style.englishName}" men's haircut. Keep the exact same face, eyes, nose, mouth, skin tone, clothing, and background identical to the original image.`;
+
+      const hfModels = [
+        'black-forest-labs/FLUX.1-Kontext-dev',
+        'Qwen/Qwen-Image-Edit',
+      ];
+
+      let foundImage = false;
+      let lastErr = '';
+
+      for (const modelId of hfModels) {
+        try {
+          const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${hfToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              inputs: base64Data,
+              parameters: {
+                prompt: editPrompt,
+              },
+            }),
+          });
+
+          if (!res.ok) {
+            const errText = await res.text();
+            lastErr = `[${modelId}] HTTP ${res.status}: ${errText.slice(0, 160)}`;
+            continue;
+          }
+
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('image')) {
+            const blob = await res.blob();
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              if (typeof reader.result === 'string') {
+                setGeneratedImage(reader.result);
+              }
+              setGeneratingStyle(null);
+            };
+            reader.readAsDataURL(blob);
+            foundImage = true;
+            break;
+          } else {
+            const json = await res.json();
+            const b64Out = json?.image || json?.[0]?.image;
+            if (b64Out) {
+              setGeneratedImage(
+                b64Out.startsWith('data:') ? b64Out : `data:image/png;base64,${b64Out}`
+              );
+              foundImage = true;
+              setGeneratingStyle(null);
+              break;
+            }
+            lastErr = `[${modelId}] ไม่พบข้อมูลภาพในการตอบกลับ`;
+          }
+        } catch (err: unknown) {
+          lastErr = `[${modelId}] ${err instanceof Error ? err.message : String(err)}`;
+        }
+      }
+
+      if (!foundImage) {
+        setGenError(lastErr || 'ไม่สามารถเปลี่ยนทรงผมได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง');
+        setGeneratingStyle(null);
+      }
     } catch (error: unknown) {
       console.error('Error generating hairstyle image:', error);
       const errMsg = error instanceof Error ? error.message : JSON.stringify(error);
-      setGenError(`เกิดข้อผิดพลาดในการเปลี่ยนทรงผม: ${errMsg}`);
+      setGenError(`เกิดข้อผิดพลาด: ${errMsg}`);
       setGeneratingStyle(null);
     }
   };
