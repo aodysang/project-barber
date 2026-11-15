@@ -246,7 +246,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: ส่งรูปหน้าจริงเข้า Hugging Face Router (fal-ai / replicate) เพื่อเปลี่ยนเฉพาะทรงผม
+  // 4. ฟังก์ชันที่ 2: ค้นหาโมเดล Image-to-Image ที่ออนไลน์จริงบน Hugging Face และเปลี่ยนเฉพาะทรงผม
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -266,50 +266,60 @@ export default function AiBarberStudio() {
 
       const editPrompt = `Change ONLY the person's hairstyle to a realistic "${style.englishName}" men's haircut. Keep the exact same face, eyes, nose, mouth, skin tone, clothing, and background identical to the original image.`;
 
-      const endpoints = [
-        {
-          name: 'FLUX.1-Kontext-dev (fal-ai)',
-          url: 'https://router.huggingface.co/fal-ai/fal-ai/flux-kontext/dev',
-          body: {
-            prompt: editPrompt,
-            image_url: capturedImage,
-          },
-        },
-        {
-          name: 'FLUX.1-Kontext-dev (replicate)',
-          url: 'https://router.huggingface.co/replicate/v1/models/black-forest-labs/flux-kontext-dev/predictions',
-          body: {
-            input: {
-              prompt: editPrompt,
-              input_image: capturedImage,
-            },
-          },
-        },
-      ];
+      // ดึงรายชื่อโมเดล image-to-image ยอดนิยมที่มี Inference Provider เปิดให้บริการจริงบน Hugging Face
+      let dynamicModels: string[] = [];
+      try {
+        const hubRes = await fetch(
+          'https://huggingface.co/api/models?pipeline_tag=image-to-image&inference_provider=all&sort=downloads&direction=-1&limit=8'
+        );
+        if (hubRes.ok) {
+          const hubList = await hubRes.json();
+          dynamicModels = (hubList || [])
+            .map((m: { id?: string }) => m.id || '')
+            .filter(Boolean);
+        }
+      } catch {
+        // ใช้รายการสำรองถ้าดึง Hub API ไม่สำเร็จ
+      }
 
+      const candidateModels =
+        dynamicModels.length > 0
+          ? dynamicModels
+          : [
+              'black-forest-labs/FLUX.1-Kontext-dev',
+              'Qwen/Qwen-Image-Edit',
+              'ByteDance/SeedEdit-3.0',
+            ];
+
+      const imgBlob = await (await fetch(capturedImage)).blob();
+      const allErrors: string[] = [];
       let foundImage = false;
-      let lastErr = '';
 
-      for (const ep of endpoints) {
+      // 1. ลองเรียกผ่าน OpenAI-compatible Image Edit endpoint ของ Hugging Face Router (/v1/images/edits)
+      for (const modelId of candidateModels.slice(0, 4)) {
         try {
-          const res = await fetch(ep.url, {
+          const form = new FormData();
+          form.append('model', modelId);
+          form.append('prompt', editPrompt);
+          form.append('image', imgBlob, 'face.jpg');
+
+          const res = await fetch('https://router.huggingface.co/v1/images/edits', {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${hfToken}`,
-              'Content-Type': 'application/json',
             },
-            body: JSON.stringify(ep.body),
+            body: form,
           });
 
           if (!res.ok) {
-            const errText = await res.text();
-            lastErr = `[${ep.name}] HTTP ${res.status}: ${errText.slice(0, 180)}`;
+            const errTxt = await res.text();
+            allErrors.push(`[${modelId}] HTTP ${res.status}: ${errTxt.slice(0, 140)}`);
             continue;
           }
 
           const contentType = res.headers.get('content-type') || '';
           if (contentType.includes('image')) {
-            const blob = await res.blob();
+            const outBlob = await res.blob();
             const reader = new FileReader();
             reader.onloadend = () => {
               if (typeof reader.result === 'string') {
@@ -317,44 +327,50 @@ export default function AiBarberStudio() {
               }
               setGeneratingStyle(null);
             };
-            reader.readAsDataURL(blob);
+            reader.readAsDataURL(outBlob);
             foundImage = true;
             break;
-          } else {
-            const data = await res.json();
-            const outUrl =
-              data?.images?.[0]?.url ||
-              (Array.isArray(data?.output) ? data.output[0] : data?.output) ||
-              data?.image;
-
-            if (outUrl && typeof outUrl === 'string') {
-              try {
-                const imgRes = await fetch(outUrl);
-                const imgBlob = await imgRes.blob();
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                  setGeneratedImage(
-                    typeof reader.result === 'string' ? reader.result : outUrl
-                  );
-                  setGeneratingStyle(null);
-                };
-                reader.readAsDataURL(imgBlob);
-              } catch {
-                setGeneratedImage(outUrl);
-                setGeneratingStyle(null);
-              }
-              foundImage = true;
-              break;
-            }
-            lastErr = `[${ep.name}] ไม่พบ URL รูปภาพในคำตอบ: ${JSON.stringify(data).slice(0, 150)}`;
           }
+
+          const json = await res.json();
+          const b64 = json?.data?.[0]?.b64_json || json?.image;
+          const outUrl = json?.data?.[0]?.url || json?.images?.[0]?.url;
+
+          if (b64) {
+            setGeneratedImage(b64.startsWith('data:') ? b64 : `data:image/png;base64,${b64}`);
+            setGeneratingStyle(null);
+            foundImage = true;
+            break;
+          }
+
+          if (outUrl) {
+            try {
+              const fetchImg = await fetch(outUrl);
+              const fetchBlob = await fetchImg.blob();
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                setGeneratedImage(typeof reader.result === 'string' ? reader.result : outUrl);
+                setGeneratingStyle(null);
+              };
+              reader.readAsDataURL(fetchBlob);
+            } catch {
+              setGeneratedImage(outUrl);
+              setGeneratingStyle(null);
+            }
+            foundImage = true;
+            break;
+          }
+
+          allErrors.push(`[${modelId}] ไม่พบภาพในคำตอบ: ${JSON.stringify(json).slice(0, 120)}`);
         } catch (err: unknown) {
-          lastErr = `[${ep.name}] ${err instanceof Error ? err.message : String(err)}`;
+          allErrors.push(`[${modelId}] ${err instanceof Error ? err.message : String(err)}`);
         }
       }
 
       if (!foundImage) {
-        setGenError(lastErr || 'ไม่สามารถเปลี่ยนทรงผมได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง');
+        setGenError(
+          allErrors.join(' | ') || 'ไม่สามารถสร้างภาพได้ กรุณาตรวจสอบสิทธิ์ Inference ของ Hugging Face Token'
+        );
         setGeneratingStyle(null);
       }
     } catch (error: unknown) {
