@@ -27,7 +27,7 @@ function getHairSegmenter(): Promise<ImageSegmenterType> {
       const { ImageSegmenter, FilesetResolver } = await import(
         "@mediapipe/tasks-vision"
       );
-      const vision = await FilesetResolver.forVisionTasks("/mediapipe/wasm");
+      const vision = await FilesetResolver.forVisionTasks("/project-barber/mediapipe/wasm");
       return ImageSegmenter.createFromOptions(vision, {
         baseOptions: { modelAssetPath: HAIR_MODEL_URL, delegate: "CPU" },
         runningMode: "IMAGE",
@@ -259,7 +259,7 @@ export default function HairCutoutPage() {
             <img
               key={styleId}
               ref={imgRef}
-              src={`/hairstyles/${styleId}.jpg`}
+              src={`/project-barber/hairstyles/${styleId}.jpg`}
               alt={styleId}
               className="w-full rounded border"
             />

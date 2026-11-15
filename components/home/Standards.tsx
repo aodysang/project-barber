@@ -26,7 +26,7 @@ export default function Standards() {
         {/* Section background with .image-treatment overlay */}
         <div className="absolute inset-0 z-0">
           <Image
-            src="/images/hero-barber.jpg"
+            src="/project-barber/images/hero-barber.jpg"
             alt="มาตรฐานการบริการ"
             fill
             className="object-cover object-center"

@@ -10,7 +10,7 @@ export default function About() {
           {/* Left: tall photo (barber-veera.jpg, aspect-[4/5], rounded-[28px]) */}
           <div className="relative aspect-[4/5] w-full rounded-[28px] overflow-hidden shadow-xl bg-neutral-900">
             <Image
-              src="/images/barber-veera.jpg"
+              src="/project-barber/images/barber-veera.jpg"
               alt="ประสบการณ์มากกว่า 20 ปี"
               fill
               className="object-cover object-top"

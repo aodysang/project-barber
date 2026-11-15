@@ -75,7 +75,7 @@ export const BARBERS_DATA: BarberItem[] = [
     specialty: "ทรงคลาสสิก, วินเทจ, โกนหนวดประคบอุ่น",
     rating: 5.0,
     reviewCount: 248,
-    photo: "/images/barber-veera.jpg",
+    photo: "/project-barber/images/barber-veera.jpg",
   },
   {
     id: "barber-2",
@@ -86,7 +86,7 @@ export const BARBERS_DATA: BarberItem[] = [
     specialty: "สกินเฟด, อันเดอร์คัต, สตรีทโมเดิร์น",
     rating: 4.9,
     reviewCount: 185,
-    photo: "/images/barber-beck.jpg",
+    photo: "/project-barber/images/barber-beck.jpg",
   },
   {
     id: "barber-3",
@@ -97,7 +97,7 @@ export const BARBERS_DATA: BarberItem[] = [
     specialty: "ทรงเกาหลี, แฟชั่น, คอมม่า, มัลเล็ต",
     rating: 4.8,
     reviewCount: 142,
-    photo: "/images/barber-fluke.jpg",
+    photo: "/project-barber/images/barber-fluke.jpg",
   },
 ];
 

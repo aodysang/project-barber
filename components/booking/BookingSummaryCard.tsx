@@ -84,7 +84,7 @@ export default function BookingSummaryCard({ className = "" }: BookingSummaryCar
       {/* Top Banner (96-104px height) */}
       <div className="relative h-[96px] sm:h-[104px] w-full overflow-hidden bg-[#0B1F1F] shrink-0">
         <img
-          src="/images/hero-barber.jpg"
+          src="/project-barber/images/hero-barber.jpg"
           alt="Veera Barber Atmosphere"
           className="w-full h-full object-cover object-center opacity-70"
         />

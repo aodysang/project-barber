@@ -8,7 +8,7 @@ export const hairstyles = [
     description: "โกนข้างสั้น ด้านบนปล่อยยาว ดูเท่ทันสมัย",
     aiPrompt:
       "an undercut: sides shaved very short, top left long and swept back",
-    referenceImage: "/hairstyles/undercut.jpg",
+    referenceImage: "/project-barber/hairstyles/undercut.jpg",
   },
 
   {
@@ -20,7 +20,7 @@ export const hairstyles = [
     description: "สไตล์เกาหลี ด้านบนหนา ด้านข้างสั้นกระชับ",
     aiPrompt:
       "a Korean two-block cut: thick textured hair on top with a fringe, short tapered sides",
-    referenceImage: "/hairstyles/two-block.jpg",
+    referenceImage: "/project-barber/hairstyles/two-block.jpg",
   },
 
   {
@@ -32,7 +32,7 @@ export const hairstyles = [
     description: "สั้นทั้งศีรษะ ดูแลง่าย เหมาะกับสายลุย",
     aiPrompt:
       "a buzz cut: hair clipped very short and even all over the head",
-    referenceImage: "/hairstyles/buzz-cut.jpg",
+    referenceImage: "/project-barber/hairstyles/buzz-cut.jpg",
   },
 
   {
@@ -44,7 +44,7 @@ export const hairstyles = [
     description: "ยกโปงด้านหน้า ดูหรูหรามีสไตล์",
     aiPrompt:
       "a pompadour: hair swept up and back with high volume at the front, short sides",
-    referenceImage: "/hairstyles/pompadour.jpg",
+    referenceImage: "/project-barber/hairstyles/pompadour.jpg",
   },
 
   {
@@ -56,7 +56,7 @@ export const hairstyles = [
     description: "สั้นเรียบร้อย เหมาะกับการทำงาน",
     aiPrompt:
       "a crew cut: short neat hair, slightly longer on top, tapered short sides",
-    referenceImage: "/hairstyles/crew-cut.jpg",
+    referenceImage: "/project-barber/hairstyles/crew-cut.jpg",
   },
 
   {
@@ -68,6 +68,6 @@ export const hairstyles = [
     description: "ปัดขึ้นด้านหน้า ดูเท่แบบไม่จัดจ้านเกินไป",
     aiPrompt:
       "a quiff: hair brushed upward and slightly back at the front, medium-short sides",
-    referenceImage: "/hairstyles/quiff.jpg",
+    referenceImage: "/project-barber/hairstyles/quiff.jpg",
   },
 ];

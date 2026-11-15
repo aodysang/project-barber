@@ -7,9 +7,9 @@ import type {
 let landmarkerPromise: Promise<FaceLandmarkerType> | null = null;
 
 // พาธสำหรับ WASM และ Model ทั้งแบบ Local และ CDN สำรอง
-const WASM_LOCAL_PATH = "/mediapipe/wasm";
+const WASM_LOCAL_PATH = "/project-barber/mediapipe/wasm";
 const WASM_CDN_PATH = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
-const MODEL_LOCAL_PATH = "/mediapipe/face_landmarker.task";
+const MODEL_LOCAL_PATH = "/project-barber/mediapipe/face_landmarker.task";
 const MODEL_CDN_URL =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 

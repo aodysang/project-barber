@@ -12,7 +12,7 @@ export default function TryOnPage() {
   // โหลดรูปผม PNG
   useEffect(() => {
     const img = new Image();
-    img.src = "/hairstyles/undercut.png";
+    img.src = "/project-barber/hairstyles/undercut.png";
     img.onload = () => setHairImage(img);
   }, []);
 

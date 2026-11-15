@@ -27,7 +27,7 @@ const curatedStyles: ExtendedHairstyle[] = [
     nameEn: "Architectural Two-Block",
     category: "Korean & Asian Modern",
     faceShape: "Oval · Balanced",
-    referenceImage: "/hairstyles/two-block.jpg",
+    referenceImage: "/project-barber/hairstyles/two-block.jpg",
     geometryNotes: "Relieves temporal weight while maintaining crown density. Frames eye-line naturally.",
     clipperSpecs: "Guard #3 internal disconnect, low taper fade at nape, 6.5cm textured perimeter.",
     matchedBarberId: "barber-3", // Fluke
@@ -41,7 +41,7 @@ const curatedStyles: ExtendedHairstyle[] = [
     nameEn: "Executive Modern Quiff",
     category: "Structured & Classic",
     faceShape: "Round & Square",
-    referenceImage: "/hairstyles/quiff.jpg",
+    referenceImage: "/project-barber/hairstyles/quiff.jpg",
     geometryNotes: "Elongates vertical facial silhouette. Balances wider mandibular angle with crown height.",
     clipperSpecs: "Mid-drop fade starting at 0.5mm, scissor graduated crown with matte clay finish.",
     matchedBarberId: "barber-2", // Beck
@@ -55,7 +55,7 @@ const curatedStyles: ExtendedHairstyle[] = [
     nameEn: "Heritage High Pompadour",
     category: "Vintage & Formal",
     faceShape: "Oval & Oblong",
-    referenceImage: "/hairstyles/pompadour.jpg",
+    referenceImage: "/project-barber/hairstyles/pompadour.jpg",
     geometryNotes: "Exemplifies clean razor parting. Sharp temples accentuate cheekbone architecture.",
     clipperSpecs: "Zero-gap razor line, high taper blend, scissor over comb 8cm front sweep.",
     matchedBarberId: "barber-1", // Veera
@@ -69,7 +69,7 @@ const curatedStyles: ExtendedHairstyle[] = [
     nameEn: "Sculpted Clean Undercut",
     category: "High Contrast",
     faceShape: "Square & Jaw-Dominant",
-    referenceImage: "/hairstyles/undercut.jpg",
+    referenceImage: "/project-barber/hairstyles/undercut.jpg",
     geometryNotes: "High visual contrast sharpens jawline definition and chisels soft cheek contours.",
     clipperSpecs: "Skin taper from temple to occipital bone, disconnected swept back top.",
     matchedBarberId: "barber-2", // Beck
@@ -83,7 +83,7 @@ const curatedStyles: ExtendedHairstyle[] = [
     nameEn: "Precision Crew Taper",
     category: "Minimal & Tactical",
     faceShape: "Square & Diamond",
-    referenceImage: "/hairstyles/crew-cut.jpg",
+    referenceImage: "/project-barber/hairstyles/crew-cut.jpg",
     geometryNotes: "Emphasizes masculine jawline while keeping temporal regions trim and maintenance-free.",
     clipperSpecs: "Closed clipper #1 to #2 blend, flat crown graduation with hairline boxing.",
     matchedBarberId: "barber-4", // Lek
@@ -97,7 +97,7 @@ const curatedStyles: ExtendedHairstyle[] = [
     nameEn: "Textured Tactical Buzz",
     category: "Ultra Minimal",
     faceShape: "Oval & Diamond",
-    referenceImage: "/hairstyles/buzz-cut.jpg",
+    referenceImage: "/project-barber/hairstyles/buzz-cut.jpg",
     geometryNotes: "Pure skull exposure. Best paired with precise hairline laser-level razor edging.",
     clipperSpecs: "Uniform #3 on skull apex, skin fade at sides and neckline with foil shaver finish.",
     matchedBarberId: "barber-2", // Beck

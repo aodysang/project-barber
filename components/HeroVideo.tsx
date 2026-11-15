@@ -18,7 +18,7 @@ export default function HeroVideo() {
     return (
         <div className="absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
             <img
-                src="/videos/hero-poster.jpg"
+                src="/project-barber/videos/hero-poster.jpg"
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
             />
@@ -31,10 +31,10 @@ export default function HeroVideo() {
                     loop
                     playsInline
                     preload="metadata"
-                    poster="/videos/hero-poster.jpg"
+                    poster="/project-barber/videos/hero-poster.jpg"
                     onError={() => setShowVideo(false)}
                 >
-                    <source src="/videos/hero.mp4" type="video/mp4" />
+                    <source src="/project-barber/videos/hero.mp4" type="video/mp4" />
                 </video>
             )}
 

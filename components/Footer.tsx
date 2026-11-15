@@ -18,10 +18,10 @@ export default function Footer() {
         </svg>
       </div>
 
-      {/* Background with /images/hero-barber.jpg and .image-treatment */}
+      {/* Background with /project-barber/images/hero-barber.jpg and .image-treatment */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <Image
-          src="/images/hero-barber.jpg"
+          src="/project-barber/images/hero-barber.jpg"
           alt="บรรยากาศร้าน Veera Barber"
           fill
           className="object-cover object-center"

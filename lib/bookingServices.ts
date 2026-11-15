@@ -25,7 +25,7 @@ export const SERVICES_DATA: ServiceItem[] = [
     enName: "Haircut",
     price: 250,
     duration: 30,
-    image: "/images/service-haircut.jpg",
+    image: "/project-barber/images/service-haircut.jpg",
   },
   {
     id: "haircut-shave",
@@ -33,7 +33,7 @@ export const SERVICES_DATA: ServiceItem[] = [
     enName: "Haircut + Shave",
     price: 400,
     duration: 45,
-    image: "/images/service-shave.jpg",
+    image: "/project-barber/images/service-shave.jpg",
   },
   {
     id: "wash-blow",
@@ -41,7 +41,7 @@ export const SERVICES_DATA: ServiceItem[] = [
     enName: "Wash & Blow",
     price: 150,
     duration: 30,
-    image: "/images/service-wash.jpg",
+    image: "/project-barber/images/service-wash.jpg",
   },
   {
     id: "perm",
@@ -49,7 +49,7 @@ export const SERVICES_DATA: ServiceItem[] = [
     enName: "Perm",
     price: 1200,
     duration: 90,
-    image: "/images/service-haircut.jpg",
+    image: "/project-barber/images/service-haircut.jpg",
   },
   {
     id: "dye",
@@ -57,7 +57,7 @@ export const SERVICES_DATA: ServiceItem[] = [
     enName: "Hair Color",
     price: 800,
     duration: 60,
-    image: "/images/service-kid.jpg",
+    image: "/project-barber/images/service-kid.jpg",
   },
 ];
 

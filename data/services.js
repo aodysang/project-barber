@@ -6,7 +6,7 @@ export const services = [
     duration: 30,
     category: "ยอดนิยม",
     popular: true,
-    image: "/images/service-haircut.jpg",
+    image: "/project-barber/images/service-haircut.jpg",
     description: "ตัดแต่งทรงผมสไตล์คลาสสิก วินเทจ เฟด หรือทรงสมัยใหม่ เก็บขอบเนียนเป๊ะ พร้อมเซ็ตทรง",
   },
   {
@@ -16,7 +16,7 @@ export const services = [
     duration: 30,
     category: "เด็กและเยาวชน",
     popular: false,
-    image: "/images/service-kid.jpg",
+    image: "/project-barber/images/service-kid.jpg",
     description: "ตัดผมทรงนักเรียน รองทรง แฟชั่น ช่างใจดี มีความอดทนและเป็นกันเองกับน้องๆ",
   },
   {
@@ -26,7 +26,7 @@ export const services = [
     duration: 35,
     category: "เด็กและเยาวชน",
     popular: false,
-    image: "/images/service-kid.jpg",
+    image: "/project-barber/images/service-kid.jpg",
     description: "ตัดผมเด็กเล็กด้วยความใจเย็น นุ่มนวล ปลอดภัย อ่อนโยนเป็นพิเศษ",
   },
   {
@@ -36,7 +36,7 @@ export const services = [
     duration: 15,
     category: "ดูแลเส้นผม",
     popular: false,
-    image: "/images/service-wash.jpg",
+    image: "/project-barber/images/service-wash.jpg",
     description: "สระทำความสะอาดล้ำลึก นวดผ่อนคลายศีรษะ ด้วยแชมพูสูตรเย็นสดชื่นพร้อมไดร์เซ็ตทรง",
   },
   {
@@ -46,7 +46,7 @@ export const services = [
     duration: 15,
     category: "กรูมมิ่ง",
     popular: false,
-    image: "/images/service-shave.jpg",
+    image: "/project-barber/images/service-shave.jpg",
     description: "ประคบผ้าอุ่นผ่อนคลาย โกนหนวดแต่งเคราและกันกรอบหน้าด้วยใบมีดใหม่ เกลี้ยงเกลานุ่มนวล",
   },
   {
@@ -56,7 +56,7 @@ export const services = [
     duration: 40,
     category: "ดูแลผ่อนคลาย",
     popular: false,
-    image: "/images/service-shave.jpg",
+    image: "/project-barber/images/service-shave.jpg",
     description: "บริการแคะหูและทำความสะอาดช่องหูอย่างพิถีพิถัน สบาย ผ่อนคลาย สะอาด ปลอดภัย",
   },
   {
@@ -66,7 +66,7 @@ export const services = [
     duration: 40,
     category: "ดูแลผ่อนคลาย",
     popular: false,
-    image: "/images/service-wash.jpg",
+    image: "/project-barber/images/service-wash.jpg",
     description: "ล้างตาสูตรดั้งเดิม ช่วยให้ดวงตาสะอาด สดชื่น ผ่อนคลายจากความเหนื่อยล้า",
   },
   {
@@ -76,7 +76,7 @@ export const services = [
     duration: 100,
     category: "ทำสีผม",
     popular: false,
-    image: "/images/service-haircut.jpg",
+    image: "/project-barber/images/service-haircut.jpg",
     description: "บริการย้อมผม ปิดผมขาว และทำสีแฟชั่น ด้วยน้ำยาย้อมคุณภาพ ปลอดภัยต่อหนังศีรษะ",
   },
 ];
