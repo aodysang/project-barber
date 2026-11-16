@@ -260,7 +260,6 @@ export default function AiBarberStudio() {
       const imgBlob = await (await fetch(capturedImage)).blob();
       const editPrompt = `Change ONLY the person's hairstyle to a realistic "${style.englishName}" men's haircut. Keep the exact same face, eyes, nose, mouth, skin tone, clothing, and background identical to the original image.`;
 
-      // เชื่อมต่อไปยัง Hugging Face Spaces ที่รันบน ZeroGPU ฟรี (ไม่หักเครดิต API)
       const spacesToTry = [
         {
           spaceId: 'black-forest-labs/FLUX.1-Kontext-dev',
@@ -268,10 +267,10 @@ export default function AiBarberStudio() {
           buildArgs: () => [
             imgBlob,
             editPrompt,
-            0, // seed
-            true, // randomize_seed
-            2.5, // guidance_scale
-            20, // steps
+            0,
+            true,
+            2.5,
+            20,
           ],
         },
         {
