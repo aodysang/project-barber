@@ -16,8 +16,34 @@ interface AnalysisData {
   recommendations: RecommendedStyle[];
 }
 
-// ย่อขนาดรูปให้คมชัดพอสำหรับเก็บรายละเอียดแสงเงาและไรผม (768px)
-function resizeImage(dataUrl: string, maxWidth = 768): Promise<string> {
+// ย่อขนาดรูป + เผื่อพื้นที่ว่างเหนือศีรษะเล็กน้อยเพื่อไม่ให้ผมชนขอบบน
+function prepareImageWithHeadroom(dataUrl: string, maxWidth = 768): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxWidth / img.width);
+      const targetW = Math.round(img.width * scale);
+      const targetH = Math.round(img.height * scale);
+      const topPad = Math.round(targetH * 0.12);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH + topPad;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, img.width, 8, 0, 0, targetW, topPad + 4);
+        ctx.drawImage(img, 0, topPad, targetW, targetH);
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
+      } else {
+        resolve(dataUrl);
+      }
+    };
+    img.src = dataUrl;
+  });
+}
+
+// ย่อขนาดรูปธรรมดาสำหรับส่งวิเคราะห์โครงหน้า
+function resizeImage(dataUrl: string, maxWidth = 256): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -28,7 +54,7 @@ function resizeImage(dataUrl: string, maxWidth = 768): Promise<string> {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.92));
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       } else {
         resolve(dataUrl);
       }
@@ -77,7 +103,7 @@ export default function AiBarberStudio() {
       setGeneratedImage(null);
       setGenError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1024 }, height: { ideal: 768 } },
+        video: { facingMode: 'user', width: { ideal: 768 }, height: { ideal: 1024 } },
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -113,7 +139,7 @@ export default function AiBarberStudio() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const rawDataUrl = canvas.toDataURL('image/jpeg', 0.92);
         stopCamera();
-        const hdImage = await resizeImage(rawDataUrl, 768);
+        const hdImage = await prepareImageWithHeadroom(rawDataUrl, 768);
         setCapturedImage(hdImage);
       }
     }
@@ -132,7 +158,7 @@ export default function AiBarberStudio() {
     const reader = new FileReader();
     reader.onload = async () => {
       if (typeof reader.result === 'string') {
-        const hdImage = await resizeImage(reader.result, 768);
+        const hdImage = await prepareImageWithHeadroom(reader.result, 768);
         setCapturedImage(hdImage);
       }
     };
@@ -247,7 +273,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: เชื่อมต่อ Hugging Face ZeroGPU Space (เน้น Qwen-Image-Edit + ลดความแข็งของขอบผม)
+  // 4. ฟังก์ชันที่ 2: เปลี่ยนทรงผมให้เห็นความแตกต่างชัดเจน + กลืนแสงห้องจริง
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -259,21 +285,19 @@ export default function AiBarberStudio() {
       const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}` | undefined;
       const imgBlob = await (await fetch(capturedImage)).blob();
 
-      // เน้นความเป็นธรรมชาติ เส้นผมฟุ้งไม่เป็นก้อน และมีเงาตกกระทบบนหน้าผากตามแสงห้องจริง
-      const editPrompt = `Change ONLY the man's hairstyle to a natural, slightly messy ${style.englishName} haircut. Realistic individual hair strands, soft feathered hairline with natural forehead shadow, matching the exact low-light smartphone camera grain, exposure, and warm indoor lighting of the original selfie. Keep his exact face, skin pores, eyes, nose, mouth, and background completely unchanged.`;
+      const editPrompt = `Restyle and cut this man's hair into a distinct ${style.englishName} men's haircut. Show clear barbershop styling, natural Asian hair texture, soft realistic hairline with subtle shadow on the forehead, matching the warm indoor lighting and smartphone camera grain of the selfie. Keep his exact face and room background.`;
 
       const spacesToTry = [
         {
-          // ใช้ Qwen-Image-Edit เป็นตัวหลัก เพราะเกลี่ยเส้นผมและแสงกล้องมือถือได้เนียนกว่า
           spaceId: 'Qwen/Qwen-Image-Edit',
           endpoint: '/infer',
           buildArgs: () => [
             imgBlob,
             editPrompt,
-            0, // seed
-            true, // randomize_seed
-            2.2, // guidance_scale ต่ำลงเพื่อให้เส้นผมนุ่ม ไม่แข็งเป็นก้อน
-            28, // steps
+            0,
+            true,
+            3.2,
+            28,
           ],
         },
         {
@@ -284,7 +308,7 @@ export default function AiBarberStudio() {
             editPrompt,
             0,
             true,
-            2.2, // ลดจาก 3.0 เหลือ 2.2 เพื่อลดความแข็งของขอบไรผม
+            2.8,
             28,
           ],
         },
@@ -345,7 +369,7 @@ export default function AiBarberStudio() {
 
   return (
     <div className="w-full max-w-[960px] mx-auto flex flex-col gap-8 text-left">
-      {/* สเต็ปที่ 1: ถ่ายรูป / อัปโหลดใบหน้า */}
+      {/* สเต็ปที่ 1: ถ่ายรูป / อัปโหลดใบหน้า พร้อมกรอบไกด์ระยะใบหน้าและพื้นที่เหนือหัว */}
       <section className="rounded-[24px] border border-[rgba(232,201,138,0.28)] bg-[rgba(255,255,255,0.03)] backdrop-blur-md p-6 sm:p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -353,7 +377,7 @@ export default function AiBarberStudio() {
               STEP 01 · FACE CAPTURE & ANALYSIS
             </span>
             <h2 className="text-xl sm:text-2xl font-bold text-[#F4F1EC] mt-1">
-              1. ถ่ายรูปหน้าตรงเพื่อวิเคราะห์โครงหน้า
+              1. ถ่ายรูปหน้าตรงให้อยู่ในกรอบเพื่อวิเคราะห์ทรงผม
             </h2>
           </div>
           {capturedImage && (
@@ -372,22 +396,50 @@ export default function AiBarberStudio() {
           )}
         </div>
 
-        {/* กรอบแสดงกล้องหรือรูปที่ถ่ายไว้ */}
+        {/* กรอบแสดงกล้องพร้อมไกด์วางใบหน้า หรือรูปที่ถ่ายไว้ */}
         {!capturedImage ? (
           <div className="flex flex-col items-center gap-5">
-            <div className="relative w-full max-w-md aspect-[4/3] bg-[#060F11] rounded-2xl overflow-hidden border border-[rgba(232,201,138,0.25)] flex items-center justify-center">
+            {/* กรอบกล้องแนวตั้ง 3:4 เพื่อเห็นพื้นที่เหนือศีรษะและช่วงไหล่ชัดเจน */}
+            <div className="relative w-full max-w-sm aspect-[3/4] bg-[#060F11] rounded-2xl overflow-hidden border-2 border-[rgba(232,201,138,0.35)] flex items-center justify-center shadow-inner">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 className={`w-full h-full object-cover scale-x-[-1] ${cameraActive ? 'block' : 'hidden'}`}
               />
-              {!cameraActive && (
-                <div className="text-center p-6 text-[rgba(244,241,236,0.6)]">
-                  <p className="text-sm">กดปุ่มเปิดกล้องเพื่อถ่ายรูปหน้าตรง หรืออัปโหลดรูปภาพจากเครื่อง</p>
+
+              {/* กรอบไกด์ตำแหน่งใบหน้าและระยะเหนือศีรษะ (แสดงตลอดทั้งตอนยังไม่เปิดกล้องและตอนเปิดกล้อง) */}
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between p-4">
+                {/* แถบแจ้งเตือนด้านบน: เว้นพื้นที่เหนือหัว */}
+                <div className="w-full border-b border-dashed border-[#E8C98A]/60 pb-2 text-center">
+                  <span className="inline-block px-3 py-0.5 rounded-full bg-[#081416]/80 text-[11px] font-medium text-[#E8C98A] border border-[#E8C98A]/40">
+                    ↑ เว้นช่องว่างด้านบนไว้สำหรับทรงผม
+                  </span>
                 </div>
-              )}
+
+                {/* วงรีไกด์กรอบหน้าตรงกลาง */}
+                <div className="relative w-44 h-60 sm:w-48 sm:h-64 rounded-[999px] border-2 border-dashed border-[#E8C98A]/85 flex flex-col items-center justify-center shadow-[0_0_0_9999px_rgba(6,15,17,0.38)]">
+                  {/* เส้นเล็งระดับสายตา */}
+                  <div className="w-full border-t border-dotted border-[#E8C98A]/40 absolute top-[42%]" />
+                  {!cameraActive && (
+                    <p className="text-xs text-center text-[#F4F1EC]/85 px-4 leading-relaxed">
+                      วางใบหน้าตรงให้อยู่ในกรอบวงรีนี้
+                    </p>
+                  )}
+                </div>
+
+                {/* เส้นไกด์ช่วงไหล่ด้านล่าง */}
+                <div className="w-64 h-8 border-t-2 border-dashed border-[#E8C98A]/50 rounded-t-[100px] flex items-end justify-center">
+                  <span className="text-[11px] text-[#E8C98A]/85 bg-[#081416]/80 px-2.5 py-0.5 rounded-full">
+                    ให้เห็นถึงระดับช่วงไหล่
+                  </span>
+                </div>
+              </div>
             </div>
+
+            <p className="text-xs text-[rgba(244,241,236,0.65)] text-center max-w-md">
+              * แนะนำให้หันหน้าตรงในที่แสงสว่างสม่ำเสมอ และเว้นพื้นที่ว่างเหนือศีรษะตามเส้นประ เพื่อให้ AI จำลองทรงผมได้สมจริงที่สุด
+            </p>
 
             <div className="flex flex-wrap justify-center gap-3">
               {!cameraActive ? (
@@ -426,7 +478,7 @@ export default function AiBarberStudio() {
             <img
               src={capturedImage}
               alt="รูปใบหน้าลูกค้า"
-              className="w-56 h-56 object-cover rounded-2xl border-2 border-[#E8C98A] shadow-lg shrink-0"
+              className="w-56 h-72 object-cover object-top rounded-2xl border-2 border-[#E8C98A] shadow-lg shrink-0"
             />
             <div className="flex-1 flex flex-col items-start gap-4">
               <p className="text-sm sm:text-base text-[rgba(244,241,236,0.8)] leading-relaxed">
@@ -534,7 +586,7 @@ export default function AiBarberStudio() {
                     <img
                       src={capturedImage!}
                       alt="Original"
-                      className="w-full aspect-square object-cover rounded-2xl border border-white/15"
+                      className="w-full aspect-[3/4] object-cover object-top rounded-2xl border border-white/15"
                     />
                   </div>
                   <div className="flex flex-col items-center gap-2">
@@ -542,7 +594,7 @@ export default function AiBarberStudio() {
                     <img
                       src={generatedImage}
                       alt={selectedStyleName}
-                      className="w-full aspect-square object-cover rounded-2xl border-2 border-[#E8C98A] shadow-xl"
+                      className="w-full aspect-[3/4] object-cover object-top rounded-2xl border-2 border-[#E8C98A] shadow-xl"
                     />
                   </div>
                 </div>
