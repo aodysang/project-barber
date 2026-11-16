@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import Link from 'next/link';
-import { Client } from '@gradio/client';
+import { fal } from '@fal-ai/client';
 
 interface RecommendedStyle {
   name: string;
@@ -16,45 +16,19 @@ interface AnalysisData {
   recommendations: RecommendedStyle[];
 }
 
-// ย่อขนาดรูป + เผื่อพื้นที่ว่างเหนือศีรษะเล็กน้อยเพื่อไม่ให้ผมชนขอบบน
-function prepareImageWithHeadroom(dataUrl: string, maxWidth = 768): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(1, maxWidth / img.width);
-      const targetW = Math.round(img.width * scale);
-      const targetH = Math.round(img.height * scale);
-      const topPad = Math.round(targetH * 0.12);
-
-      const canvas = document.createElement('canvas');
-      canvas.width = targetW;
-      canvas.height = targetH + topPad;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, img.width, 8, 0, 0, targetW, topPad + 4);
-        ctx.drawImage(img, 0, topPad, targetW, targetH);
-        resolve(canvas.toDataURL('image/jpeg', 0.92));
-      } else {
-        resolve(dataUrl);
-      }
-    };
-    img.src = dataUrl;
-  });
-}
-
-// ย่อขนาดรูปธรรมดาสำหรับส่งวิเคราะห์โครงหน้า
-function resizeImage(dataUrl: string, maxWidth = 256): Promise<string> {
+// ย่อขนาดรูปให้คมชัดและรักษาสัดส่วนใบหน้าเดิม
+function resizeImage(dataUrl: string, maxWidth = 768): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
       const scale = Math.min(1, maxWidth / img.width);
       const canvas = document.createElement('canvas');
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
       } else {
         resolve(dataUrl);
       }
@@ -139,7 +113,7 @@ export default function AiBarberStudio() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const rawDataUrl = canvas.toDataURL('image/jpeg', 0.92);
         stopCamera();
-        const hdImage = await prepareImageWithHeadroom(rawDataUrl, 768);
+        const hdImage = await resizeImage(rawDataUrl, 768);
         setCapturedImage(hdImage);
       }
     }
@@ -158,7 +132,7 @@ export default function AiBarberStudio() {
     const reader = new FileReader();
     reader.onload = async () => {
       if (typeof reader.result === 'string') {
-        const hdImage = await prepareImageWithHeadroom(reader.result, 768);
+        const hdImage = await resizeImage(reader.result, 768);
         setCapturedImage(hdImage);
       }
     };
@@ -205,7 +179,7 @@ export default function AiBarberStudio() {
       );
 
       const analysisModels =
-        validTextModels.length > 0 ? validTextModels : ['gemini-3.8-flash', 'gemini-2.5-flash'];
+        validTextModels.length > 0 ? validTextModels : ['gemini-2.5-flash'];
 
       let parsedResult: AnalysisData | null = null;
       const errors: string[] = [];
@@ -273,7 +247,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: เปลี่ยนทรงผมให้เห็นความแตกต่างชัดเจน + กลืนแสงห้องจริง
+  // 4. ฟังก์ชันที่ 2: เรียก fal.ai (FLUX Pro Kontext) ตรงจาก GitHub Pages เพื่อเปลี่ยนเฉพาะทรงผม
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -282,81 +256,48 @@ export default function AiBarberStudio() {
     setGenError(null);
 
     try {
-      const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}` | undefined;
-      const imgBlob = await (await fetch(capturedImage)).blob();
-
-      const editPrompt = `Restyle and cut this man's hair into a distinct ${style.englishName} men's haircut. Show clear barbershop styling, natural Asian hair texture, soft realistic hairline with subtle shadow on the forehead, matching the warm indoor lighting and smartphone camera grain of the selfie. Keep his exact face and room background.`;
-
-      const spacesToTry = [
-        {
-          spaceId: 'Qwen/Qwen-Image-Edit',
-          endpoint: '/infer',
-          buildArgs: () => [
-            imgBlob,
-            editPrompt,
-            0,
-            true,
-            3.2,
-            28,
-          ],
-        },
-        {
-          spaceId: 'black-forest-labs/FLUX.1-Kontext-dev',
-          endpoint: '/infer',
-          buildArgs: () => [
-            imgBlob,
-            editPrompt,
-            0,
-            true,
-            2.8,
-            28,
-          ],
-        },
-      ];
-
-      let foundImage = false;
-      const errors: string[] = [];
-
-      for (const sp of spacesToTry) {
-        try {
-          const client = await Client.connect(
-            sp.spaceId,
-            hfToken ? { hf_token: hfToken } : undefined
-          );
-          const result = await client.predict(sp.endpoint, sp.buildArgs());
-          const outputData = result?.data as Array<{ url?: string; path?: string } | string>;
-
-          const firstItem = outputData?.[0];
-          const outUrl =
-            typeof firstItem === 'string'
-              ? firstItem
-              : firstItem?.url || firstItem?.path;
-
-          if (outUrl) {
-            try {
-              const resImg = await fetch(outUrl);
-              const blobImg = await resImg.blob();
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setGeneratedImage(typeof reader.result === 'string' ? reader.result : outUrl);
-                setGeneratingStyle(null);
-              };
-              reader.readAsDataURL(blobImg);
-            } catch {
-              setGeneratedImage(outUrl);
-              setGeneratingStyle(null);
-            }
-            foundImage = true;
-            break;
-          }
-          errors.push(`[${sp.spaceId}] ไม่พบ URL รูปภาพในการตอบกลับ`);
-        } catch (err: unknown) {
-          errors.push(`[${sp.spaceId}] ${err instanceof Error ? err.message : String(err)}`);
-        }
+      const falKey = process.env.NEXT_PUBLIC_FAL_KEY;
+      if (!falKey) {
+        setGenError(
+          'ไม่พบค่า NEXT_PUBLIC_FAL_KEY กรุณาใส่ API Key จาก fal.ai ใน .env.local และ GitHub Secrets'
+        );
+        setGeneratingStyle(null);
+        return;
       }
 
-      if (!foundImage) {
-        setGenError(errors.join(' | ') || 'คิว ZeroGPU เต็มชั่วคราว กรุณากดลองใหม่อีกครั้งครับ');
+      fal.config({
+        credentials: falKey,
+      });
+
+      const prompt = `Change ONLY the man's hairstyle to a realistic, freshly cut ${style.englishName} (${style.name}) men's haircut. Seamlessly blend the natural hairline, baby hairs, and tapered side fade into his forehead skin and temples. Match the exact indoor room lighting, soft shadows on the forehead, natural dark Asian hair texture, and smartphone camera quality of the original photo. Keep his exact face, eyes, eyebrows, nose, mouth, skin pores, beard stubble, neck, and room background 100% identical.`;
+
+      const result = await fal.subscribe('fal-ai/flux-pro/kontext', {
+        input: {
+          prompt: prompt,
+          image_url: capturedImage,
+          guidance_scale: 3.5,
+          num_images: 1,
+          output_format: 'jpeg',
+        },
+      });
+
+      const outUrl = result.data?.images?.[0]?.url;
+      if (!outUrl) {
+        throw new Error('ไม่ได้รับรูปภาพจาก fal.ai');
+      }
+
+      // แปลงรูปเป็น Base64 เพื่อให้กดดาวน์โหลดลงเครื่องได้ทันที
+      try {
+        const imgRes = await fetch(outUrl);
+        const blob = await imgRes.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setGeneratedImage(typeof reader.result === 'string' ? reader.result : outUrl);
+          setGeneratingStyle(null);
+        };
+        reader.readAsDataURL(blob);
+      } catch {
+        setGeneratedImage(outUrl);
         setGeneratingStyle(null);
       }
     } catch (error: unknown) {
@@ -399,7 +340,6 @@ export default function AiBarberStudio() {
         {/* กรอบแสดงกล้องพร้อมไกด์วางใบหน้า หรือรูปที่ถ่ายไว้ */}
         {!capturedImage ? (
           <div className="flex flex-col items-center gap-5">
-            {/* กรอบกล้องแนวตั้ง 3:4 เพื่อเห็นพื้นที่เหนือศีรษะและช่วงไหล่ชัดเจน */}
             <div className="relative w-full max-w-sm aspect-[3/4] bg-[#060F11] rounded-2xl overflow-hidden border-2 border-[rgba(232,201,138,0.35)] flex items-center justify-center shadow-inner">
               <video
                 ref={videoRef}
@@ -408,18 +348,15 @@ export default function AiBarberStudio() {
                 className={`w-full h-full object-cover scale-x-[-1] ${cameraActive ? 'block' : 'hidden'}`}
               />
 
-              {/* กรอบไกด์ตำแหน่งใบหน้าและระยะเหนือศีรษะ (แสดงตลอดทั้งตอนยังไม่เปิดกล้องและตอนเปิดกล้อง) */}
+              {/* กรอบไกด์ตำแหน่งใบหน้าและระยะเหนือศีรษะ */}
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between p-4">
-                {/* แถบแจ้งเตือนด้านบน: เว้นพื้นที่เหนือหัว */}
                 <div className="w-full border-b border-dashed border-[#E8C98A]/60 pb-2 text-center">
                   <span className="inline-block px-3 py-0.5 rounded-full bg-[#081416]/80 text-[11px] font-medium text-[#E8C98A] border border-[#E8C98A]/40">
                     ↑ เว้นช่องว่างด้านบนไว้สำหรับทรงผม
                   </span>
                 </div>
 
-                {/* วงรีไกด์กรอบหน้าตรงกลาง */}
                 <div className="relative w-44 h-60 sm:w-48 sm:h-64 rounded-[999px] border-2 border-dashed border-[#E8C98A]/85 flex flex-col items-center justify-center shadow-[0_0_0_9999px_rgba(6,15,17,0.38)]">
-                  {/* เส้นเล็งระดับสายตา */}
                   <div className="w-full border-t border-dotted border-[#E8C98A]/40 absolute top-[42%]" />
                   {!cameraActive && (
                     <p className="text-xs text-center text-[#F4F1EC]/85 px-4 leading-relaxed">
@@ -428,7 +365,6 @@ export default function AiBarberStudio() {
                   )}
                 </div>
 
-                {/* เส้นไกด์ช่วงไหล่ด้านล่าง */}
                 <div className="w-64 h-8 border-t-2 border-dashed border-[#E8C98A]/50 rounded-t-[100px] flex items-end justify-center">
                   <span className="text-[11px] text-[#E8C98A]/85 bg-[#081416]/80 px-2.5 py-0.5 rounded-full">
                     ให้เห็นถึงระดับช่วงไหล่
@@ -521,7 +457,6 @@ export default function AiBarberStudio() {
             </p>
           </div>
 
-          {/* รายการทรงผมที่แนะนำ พร้อมปุ่ม Generate แยกแต่ละทรง */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {analysisData.recommendations?.map((style, idx) => {
               const isGeneratingThis = generatingStyle === style.name;
