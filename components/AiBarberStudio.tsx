@@ -247,7 +247,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: เชื่อมต่อ Hugging Face ZeroGPU Space (ปรับจูนแสงเงาและไรผมให้เนียนสมจริง)
+  // 4. ฟังก์ชันที่ 2: เชื่อมต่อ Hugging Face ZeroGPU Space (เปลี่ยนทรงผมชัดเจนและกลืนแสงธรรมชาติ)
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -259,8 +259,8 @@ export default function AiBarberStudio() {
       const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}` | undefined;
       const imgBlob = await (await fetch(capturedImage)).blob();
 
-      // สั่งให้กลืนไรผม แสงเงาในห้อง และเนื้อผมธรรมชาติของคนเอเชียเข้ากับรูปต้นฉบับ
-      const editPrompt = `Edit this candid smartphone selfie to give the man a realistic "${style.englishName}" haircut. Seamlessly blend the natural hairline, baby hairs, and side fade into his forehead and temples. Match the exact indoor lighting, soft shadows, camera grain, and natural dark Asian hair texture of the original photo so it does not look pasted on. Keep his exact face, eyes, eyebrows, nose, mouth, skin texture, and room background 100% unchanged.`;
+      // สั่งเปลี่ยนทรงผมชัดเจนในสไตล์ธรรมชาติ พร้อมค่า guidance_scale 3.0 ที่พอดีกับ Kontext
+      const editPrompt = `Give this man a fresh "${style.englishName}" haircut. Cut and restyle his hair clearly into a ${style.englishName} style with a clean natural fade, matching the indoor lighting and natural black Asian hair texture of the photo. Keep his face, facial features, skin, and room background the same.`;
 
       const spacesToTry = [
         {
@@ -271,8 +271,8 @@ export default function AiBarberStudio() {
             editPrompt,
             0, // seed
             true, // randomize_seed
-            4.5, // เพิ่ม guidance_scale ให้เก็บรายละเอียดไรผมและแสงเงาเนียนขึ้น
-            28, // เพิ่ม steps ให้เส้นผมละเอียดไม่แข็ง
+            3.0, // guidance_scale 3.0 (เปลี่ยนทรงชัดเจนแต่ยังเนียนกลืนกับแสงเดิม)
+            26, // steps
           ],
         },
         {
@@ -283,8 +283,8 @@ export default function AiBarberStudio() {
             editPrompt,
             0,
             true,
-            4.5,
-            28,
+            3.5,
+            26,
           ],
         },
       ];
