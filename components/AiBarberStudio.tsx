@@ -16,7 +16,7 @@ interface AnalysisData {
   recommendations: RecommendedStyle[];
 }
 
-const MAX_GEN_LIMIT = 2; // จำกัดลูกค้า 1 คน Generate ได้สูงสุด 2 รูป
+const MAX_GEN_LIMIT = 999; // ปลดล็อกชั่วคราวสำหรับทดสอบ (เปลี่ยนกลับเป็น 2 เมื่อพร้อมใช้งานจริง)
 const STORAGE_KEY = 'veera_barber_gen_count_v1';
 
 // ย่อขนาดรูปให้คมชัดและรักษาสัดส่วนใบหน้าเดิม
@@ -71,7 +71,7 @@ export default function AiBarberStudio() {
   const [selectedStyleName, setSelectedStyleName] = useState<string>('');
   const [genError, setGenError] = useState<string | null>(null);
 
-  // เก็บจำนวนครั้งที่ลูกค้ากด Generate ไปแล้ว (สูงสุด 2 รูปต่อคน)
+  // เก็บจำนวนครั้งที่ลูกค้ากด Generate ไปแล้ว
   const [usedCount, setUsedCount] = useState<number>(0);
 
   useEffect(() => {
@@ -279,11 +279,10 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: เรียก fal.ai (FLUX Pro Kontext) จำกัดลูกค้า 1 คน สูงสุด 2 รูป + คงโครงหน้าเรียวคมเดิม
+  // 4. ฟังก์ชันที่ 2: เรียก fal.ai (FLUX Pro Kontext) + คงโครงหน้าเรียวคมเดิม
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
 
-    // ตรวจสอบสิทธิ์ลูกค้า 1 คนไม่เกิน 2 รูป
     if (usedCount >= MAX_GEN_LIMIT) {
       setGenError(
         `คุณใช้สิทธิ์ทดลองสร้างภาพทรงผมครบ ${MAX_GEN_LIMIT} รูปแล้วครับ หากสนใจตัดทรงที่แนะนำ สามารถกดจองคิวกับช่างได้เลยครับ`
@@ -327,10 +326,8 @@ export default function AiBarberStudio() {
         throw new Error('ไม่ได้รับรูปภาพจาก fal.ai');
       }
 
-      // นับจำนวนการใช้งานเพิ่ม 1 ครั้งเมื่อสร้างภาพสำเร็จ
       updateUsedCount(usedCount + 1);
 
-      // แปลงรูปเป็น Base64 เพื่อให้กดดาวน์โหลดลงเครื่องได้ทันที
       try {
         const imgRes = await fetch(outUrl);
         const blob = await imgRes.blob();
@@ -484,7 +481,7 @@ export default function AiBarberStudio() {
         <canvas ref={canvasRef} className="hidden" />
       </section>
 
-      {/* สเต็ปที่ 2: ผลการวิเคราะห์โครงหน้า + การ์ดทรงผมที่แนะนำพร้อมตัวนับโควตา 2 รูป/คน */}
+      {/* สเต็ปที่ 2: ผลการวิเคราะห์โครงหน้า + การ์ดทรงผมที่แนะนำ */}
       {analysisData && (
         <section className="rounded-[24px] border border-[rgba(232,201,138,0.35)] bg-[rgba(255,255,255,0.04)] backdrop-blur-md p-6 sm:p-8 flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -502,42 +499,12 @@ export default function AiBarberStudio() {
               </p>
             </div>
 
-            {/* ป้ายแสดงโควต้าทดลองสร้างภาพทรงผม (สูงสุด 2 รูปต่อลูกค้า 1 คน) */}
             <div className="shrink-0 flex flex-col items-start sm:items-end gap-1.5">
-              <div
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border ${
-                  isQuotaReached
-                    ? 'bg-red-950/50 border-red-500/40 text-red-200'
-                    : 'bg-[#E8C98A]/10 border-[#E8C98A]/40 text-[#E8C98A]'
-                }`}
-              >
-                สิทธิ์สร้างภาพทรงผม: เหลือ {remainingQuota} / {MAX_GEN_LIMIT} รูป
+              <div className="px-3.5 py-1.5 rounded-full text-xs font-semibold border bg-[#E8C98A]/10 border-[#E8C98A]/40 text-[#E8C98A]">
+                โหมดทดสอบ (สร้างไปแล้ว {usedCount} รูป)
               </div>
-              {usedCount > 0 && (
-                <button
-                  onClick={() => updateUsedCount(0)}
-                  className="text-[11px] text-[rgba(244,241,236,0.45)] hover:text-[#E8C98A] underline cursor-pointer"
-                  title="สำหรับร้านค้า/ผู้ดูแลระบบรีเซ็ตสิทธิ์ทดสอบ"
-                >
-                  รีเซ็ตสิทธิ์ (สำหรับร้าน)
-                </button>
-              )}
             </div>
           </div>
-
-          {isQuotaReached && (
-            <div className="p-4 rounded-xl bg-amber-950/50 border border-[#E8C98A]/40 text-sm text-[#F4F1EC] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <span>
-                คุณใช้สิทธิ์ทดลองจำลองทรงผมครบ <strong>{MAX_GEN_LIMIT} รูป</strong> เรียบร้อยแล้วครับ สามารถนำภาพที่บันทึกไว้มาให้ช่างตัดจริงที่ร้านได้เลย!
-              </span>
-              <Link
-                href="/book"
-                className="shrink-0 px-5 py-2 rounded-full bg-[#E8C98A] text-[#081416] text-xs font-bold hover:bg-[#f3d8a0] transition"
-              >
-                จองคิวตัดผมเลย →
-              </Link>
-            </div>
-          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {analysisData.recommendations?.map((style, idx) => {
@@ -561,13 +528,9 @@ export default function AiBarberStudio() {
                   <button
                     onClick={() => generateHairstyleImage(style)}
                     disabled={isButtonDisabled}
-                    className="w-full py-2.5 px-4 rounded-full bg-[rgba(232,201,138,0.15)] border border-[#E8C98A] text-[#E8C98A] font-semibold text-sm hover:bg-[#E8C98A] hover:text-[#081416] transition disabled:opacity-40 disabled:hover:bg-[rgba(232,201,138,0.15)] disabled:hover:text-[#E8C98A] cursor-pointer disabled:cursor-not-allowed"
+                    className="w-full py-2.5 px-4 rounded-full bg-[rgba(232,201,138,0.15)] border border-[#E8C98A] text-[#E8C98A] font-semibold text-sm hover:bg-[#E8C98A] hover:text-[#081416] transition disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    {isGeneratingThis
-                      ? 'กำลัง Generate ภาพ...'
-                      : isQuotaReached
-                      ? 'ใช้สิทธิ์ครบ 2 รูปแล้ว'
-                      : 'Generate รูปทรงนี้'}
+                    {isGeneratingThis ? 'กำลัง Generate ภาพ...' : 'Generate รูปทรงนี้'}
                   </button>
                 </div>
               );
