@@ -279,7 +279,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: เรียก fal.ai (FLUX Pro Kontext) จำกัดลูกค้า 1 คน สูงสุด 2 รูป
+  // 4. ฟังก์ชันที่ 2: เรียก fal.ai (FLUX Pro Kontext) จำกัดลูกค้า 1 คน สูงสุด 2 รูป + คงโครงหน้าเรียวคมเดิม
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
 
@@ -310,13 +310,13 @@ export default function AiBarberStudio() {
         credentials: falKey,
       });
 
-      const prompt = `Change ONLY the man's hairstyle to a realistic, freshly cut ${style.englishName} (${style.name}) men's haircut. Seamlessly blend the natural hairline, baby hairs, and tapered side fade into his forehead skin and temples. Match the exact indoor room lighting, soft shadows on the forehead, natural dark Asian hair texture, and smartphone camera quality of the original photo. Keep his exact face, eyes, eyebrows, nose, mouth, skin pores, beard stubble, neck, and room background 100% identical.`;
+      const prompt = `Change ONLY the man's hairstyle to a realistic, freshly cut ${style.englishName} (${style.name}) men's haircut. Seamlessly blend the natural hairline, baby hairs, and tapered side fade into his forehead skin and temples. Preserve his exact facial bone structure, slim jawline width, cheek contours, natural shadows on the face, skin pores, eyes, eyebrows, nose, mouth, beard stubble, neck, and room background 100% identical to the original photo without widening or smoothing his face.`;
 
       const result = await fal.subscribe('fal-ai/flux-pro/kontext', {
         input: {
           prompt: prompt,
           image_url: capturedImage,
-          guidance_scale: 3.5,
+          guidance_scale: 2.6,
           num_images: 1,
           output_format: 'jpeg',
         },
