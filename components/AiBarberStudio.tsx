@@ -279,7 +279,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: เรียก fal.ai (FLUX Pro Kontext) ล็อกโครงหน้าเดิม 100% ห้ามเติมหนวดเคราหรือเปลี่ยนรูปหน้า
+  // 4. ฟังก์ชันที่ 2: เรียก fal.ai (FLUX Pro Kontext) ล็อกใบหน้าและหนวดเคราตามต้นฉบับ 100% เปลี่ยนเฉพาะทรงผม
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
 
@@ -309,7 +309,7 @@ export default function AiBarberStudio() {
         credentials: falKey,
       });
 
-      const prompt = `Edit ONLY the hair on top and sides of the head to give the person a realistic ${style.englishName} (${style.name}) haircut. Seamlessly blend the natural hairline and tapered side fade into the temples. STRICTLY preserve the person's exact original face, facial bone structure, jawline width, cheek contours, skin texture, eyes, eyebrows, nose, mouth, chin, neck, clothing, indoor lighting, and room background 100% unchanged. Do NOT add any beard, mustache, or facial hair, and do NOT alter or widen the face.`;
+      const prompt = `Edit ONLY the hair on top and sides of the head to give the person a realistic ${style.englishName} (${style.name}) haircut. Seamlessly blend the natural hairline and tapered side fade into the temples. Keep the person's exact original face, facial structure, jawline width, skin, eyes, eyebrows, nose, mouth, and exact facial hair (keep existing beard/mustache as-is, or keep clean-shaven if none) 100% identical to the original photo. Change ONLY the hairstyle.`;
 
       const result = await fal.subscribe('fal-ai/flux-pro/kontext', {
         input: {
