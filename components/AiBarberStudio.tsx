@@ -16,8 +16,8 @@ interface AnalysisData {
   recommendations: RecommendedStyle[];
 }
 
-// ย่อขนาดรูปให้พอเหมาะสำหรับส่งผ่านเน็ตมือถือและประมวลผลภาพ
-function resizeImage(dataUrl: string, maxWidth = 512): Promise<string> {
+// ย่อขนาดรูปให้คมชัดพอสำหรับเก็บรายละเอียดแสงเงาและไรผม (768px)
+function resizeImage(dataUrl: string, maxWidth = 768): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -28,7 +28,7 @@ function resizeImage(dataUrl: string, maxWidth = 512): Promise<string> {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
       } else {
         resolve(dataUrl);
       }
@@ -77,7 +77,7 @@ export default function AiBarberStudio() {
       setGeneratedImage(null);
       setGenError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        video: { facingMode: 'user', width: { ideal: 1024 }, height: { ideal: 768 } },
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -111,10 +111,10 @@ export default function AiBarberStudio() {
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const rawDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const rawDataUrl = canvas.toDataURL('image/jpeg', 0.92);
         stopCamera();
-        const smallImage = await resizeImage(rawDataUrl, 512);
-        setCapturedImage(smallImage);
+        const hdImage = await resizeImage(rawDataUrl, 768);
+        setCapturedImage(hdImage);
       }
     }
   };
@@ -132,8 +132,8 @@ export default function AiBarberStudio() {
     const reader = new FileReader();
     reader.onload = async () => {
       if (typeof reader.result === 'string') {
-        const smallImage = await resizeImage(reader.result, 512);
-        setCapturedImage(smallImage);
+        const hdImage = await resizeImage(reader.result, 768);
+        setCapturedImage(hdImage);
       }
     };
     reader.readAsDataURL(file);
@@ -247,7 +247,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: เชื่อมต่อ Hugging Face ZeroGPU Space ฟรี 100% เพื่อเปลี่ยนเฉพาะทรงผมบนหน้าจริง
+  // 4. ฟังก์ชันที่ 2: เชื่อมต่อ Hugging Face ZeroGPU Space (ปรับจูนแสงเงาและไรผมให้เนียนสมจริง)
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -258,7 +258,9 @@ export default function AiBarberStudio() {
     try {
       const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}` | undefined;
       const imgBlob = await (await fetch(capturedImage)).blob();
-      const editPrompt = `Change ONLY the person's hairstyle to a realistic "${style.englishName}" men's haircut. Keep the exact same face, eyes, nose, mouth, skin tone, clothing, and background identical to the original image.`;
+
+      // สั่งให้กลืนไรผม แสงเงาในห้อง และเนื้อผมธรรมชาติของคนเอเชียเข้ากับรูปต้นฉบับ
+      const editPrompt = `Edit this candid smartphone selfie to give the man a realistic "${style.englishName}" haircut. Seamlessly blend the natural hairline, baby hairs, and side fade into his forehead and temples. Match the exact indoor lighting, soft shadows, camera grain, and natural dark Asian hair texture of the original photo so it does not look pasted on. Keep his exact face, eyes, eyebrows, nose, mouth, skin texture, and room background 100% unchanged.`;
 
       const spacesToTry = [
         {
@@ -267,10 +269,10 @@ export default function AiBarberStudio() {
           buildArgs: () => [
             imgBlob,
             editPrompt,
-            0,
-            true,
-            2.5,
-            20,
+            0, // seed
+            true, // randomize_seed
+            4.5, // เพิ่ม guidance_scale ให้เก็บรายละเอียดไรผมและแสงเงาเนียนขึ้น
+            28, // เพิ่ม steps ให้เส้นผมละเอียดไม่แข็ง
           ],
         },
         {
@@ -281,8 +283,8 @@ export default function AiBarberStudio() {
             editPrompt,
             0,
             true,
-            4.0,
-            20,
+            4.5,
+            28,
           ],
         },
       ];
