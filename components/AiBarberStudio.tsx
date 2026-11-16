@@ -247,7 +247,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: เชื่อมต่อ Hugging Face ZeroGPU Space (เปลี่ยนทรงผมชัดเจนและกลืนแสงธรรมชาติ)
+  // 4. ฟังก์ชันที่ 2: เชื่อมต่อ Hugging Face ZeroGPU Space (เน้น Qwen-Image-Edit + ลดความแข็งของขอบผม)
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
     setGeneratingStyle(style.name);
@@ -259,32 +259,33 @@ export default function AiBarberStudio() {
       const hfToken = process.env.NEXT_PUBLIC_HF_TOKEN as `hf_${string}` | undefined;
       const imgBlob = await (await fetch(capturedImage)).blob();
 
-      // สั่งเปลี่ยนทรงผมชัดเจนในสไตล์ธรรมชาติ พร้อมค่า guidance_scale 3.0 ที่พอดีกับ Kontext
-      const editPrompt = `Give this man a fresh "${style.englishName}" haircut. Cut and restyle his hair clearly into a ${style.englishName} style with a clean natural fade, matching the indoor lighting and natural black Asian hair texture of the photo. Keep his face, facial features, skin, and room background the same.`;
+      // เน้นความเป็นธรรมชาติ เส้นผมฟุ้งไม่เป็นก้อน และมีเงาตกกระทบบนหน้าผากตามแสงห้องจริง
+      const editPrompt = `Change ONLY the man's hairstyle to a natural, slightly messy ${style.englishName} haircut. Realistic individual hair strands, soft feathered hairline with natural forehead shadow, matching the exact low-light smartphone camera grain, exposure, and warm indoor lighting of the original selfie. Keep his exact face, skin pores, eyes, nose, mouth, and background completely unchanged.`;
 
       const spacesToTry = [
         {
-          spaceId: 'black-forest-labs/FLUX.1-Kontext-dev',
+          // ใช้ Qwen-Image-Edit เป็นตัวหลัก เพราะเกลี่ยเส้นผมและแสงกล้องมือถือได้เนียนกว่า
+          spaceId: 'Qwen/Qwen-Image-Edit',
           endpoint: '/infer',
           buildArgs: () => [
             imgBlob,
             editPrompt,
             0, // seed
             true, // randomize_seed
-            3.0, // guidance_scale 3.0 (เปลี่ยนทรงชัดเจนแต่ยังเนียนกลืนกับแสงเดิม)
-            26, // steps
+            2.2, // guidance_scale ต่ำลงเพื่อให้เส้นผมนุ่ม ไม่แข็งเป็นก้อน
+            28, // steps
           ],
         },
         {
-          spaceId: 'Qwen/Qwen-Image-Edit',
+          spaceId: 'black-forest-labs/FLUX.1-Kontext-dev',
           endpoint: '/infer',
           buildArgs: () => [
             imgBlob,
             editPrompt,
             0,
             true,
-            3.5,
-            26,
+            2.2, // ลดจาก 3.0 เหลือ 2.2 เพื่อลดความแข็งของขอบไรผม
+            28,
           ],
         },
       ];
