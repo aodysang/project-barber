@@ -1,239 +1,154 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { shop } from "@/data/shop";
 
 const navLinks = [
   { label: "หน้าแรก", href: "/" },
-  { label: "บริการ", href: "/#services" },
-  { label: "ช่างของเรา", href: "/#barbers" },
-  { label: "รีวิว", href: "/#reviews" },
-  { label: "เกี่ยวกับเรา", href: "/about" },
+  { label: "บริการและราคา", href: "/#services" },
+  { label: "ทีมช่างของเรา", href: "/#barbers" },
+  { label: "มาตรฐานร้าน", href: "/#standards" },
+  { label: "รีวิวลูกค้า", href: "/#reviews" },
+  { label: "เกี่ยวกับร้าน", href: "/#about" },
+  { label: "ติดต่อ & แผนที่", href: "/#contact" },
 ];
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
-  const isBooking = pathname === "/book" || pathname === "/booking";
+  const isBookingPage = pathname === "/book" || pathname === "/booking";
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  if (isBooking) {
-    return (
-      <header className="w-full h-[64px] bg-[#0B1F1F] shadow-sm z-50 sticky top-0 font-thai-looped text-white">
-        <div className="w-full max-w-[1200px] h-full mx-auto px-[clamp(16px,4vw,48px)] flex items-center justify-between">
-          {/* Left: Wordmark + location with inline SVG scissors */}
-          <Link href="/" className="flex items-center gap-3 group shrink-0">
-            <svg
-              className="w-5 h-5 text-white shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="6" cy="6" r="3" />
-              <circle cx="6" cy="18" r="3" />
-              <line x1="20" y1="4" x2="8.12" y2="15.88" />
-              <line x1="14.47" y1="14.48" x2="20" y2="20" />
-              <line x1="8.12" y1="8.12" x2="12" y2="12" />
-            </svg>
-            <div className="flex flex-col leading-tight">
-              <span className="text-white font-serif tracking-[0.22em] font-bold text-base uppercase">
-                VEERA BARBER
-              </span>
-              <span className="text-white/50 text-[11px] tracking-wider mt-0.5">
-                แจ้งวัฒนะ 28 · นนทบุรี
-              </span>
+  return (
+    <>
+      {/* ================= DESKTOP LEFT SIDEBAR (Fixed 260px) ================= */}
+      <aside className="hidden lg:flex fixed top-0 left-0 bottom-0 w-[260px] bg-[#161616] border-r border-white/[0.08] z-50 flex-col justify-between px-7 py-8 select-none">
+        <div>
+          <Link href="/" className="group block">
+            <div className="flex items-center gap-3">
+              <img
+                src="/project-barber/hairstyles/logo.png"
+                alt="Veera Barber Logo"
+                className="w-11 h-11 object-contain invert mix-blend-screen shrink-0 transition-transform duration-300 group-hover:scale-105"
+              />
+              <div>
+                <span className="block font-serif text-xl font-semibold tracking-[0.2em] text-white uppercase leading-none">
+                  VEERA
+                </span>
+                <span className="block mt-1.5 text-[10px] tracking-[0.2em] text-[#C4A470] uppercase font-medium">
+                  BARBER STUDIO · 28
+                </span>
+              </div>
             </div>
           </Link>
 
-          {/* Center (desktop): 5 links */}
-          <nav className="hidden md:flex items-center gap-6 lg:gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-[15px] font-semibold text-white/90 hover:text-white transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
+          <div className="my-6 h-px bg-white/[0.08]" />
+
+          <nav className="flex flex-col space-y-1">
+            {navLinks.map((link) => {
+              const isActive =
+                pathname === link.href ||
+                (link.href === "/" && pathname === "/");
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`group flex items-center justify-between py-2.5 px-3 rounded-md text-[14px] transition-all ${
+                    isActive
+                      ? "text-white font-medium bg-white/[0.06]"
+                      : "text-white/65 hover:text-white hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <span>{link.label}</span>
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full transition-opacity ${
+                      isActive
+                        ? "bg-[#C4A470] opacity-100"
+                        : "bg-[#C4A470] opacity-0 group-hover:opacity-60"
+                    }`}
+                  />
+                </Link>
+              );
+            })}
           </nav>
-
-          {/* Right (desktop): Outline pill "ให้จองช่วยเลือกทรง" + solid white "จองคิว" */}
-          <div className="hidden sm:flex items-center gap-3">
-            <Link
-              href="/try"
-              className="btn-premium px-5 py-2 text-xs font-semibold gap-2"
-            >
-              <svg
-                className="w-4 h-4 shrink-0 text-[#E8C98A]"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-              </svg>
-              <span>ให้จองช่วยเลือกทรง</span>
-            </Link>
-            <Link
-              href="/book"
-              className="px-5 py-2 rounded-full bg-white text-[#0B1F1F] font-bold text-xs hover:bg-[#F4F1EC] transition-all shadow-sm"
-            >
-              จองคิว
-            </Link>
-          </div>
-
-          {/* Mobile hamburger */}
-          <div className="flex sm:hidden items-center gap-2">
-            <Link
-              href="/book"
-              className="px-3.5 py-1.5 rounded-full bg-white text-[#0B1F1F] font-bold text-xs"
-            >
-              จองคิว
-            </Link>
-            <button
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="p-1.5 text-white/80 hover:text-white"
-              aria-label="Toggle menu"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
         </div>
 
-        {/* Mobile menu dropdown */}
-        {mobileMenuOpen && (
-          <div className="sm:hidden bg-[#0B1F1F] border-t border-white/10 px-6 py-4 flex flex-col gap-3">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-sm font-semibold text-white/90 py-1"
-              >
-                {link.label}
-              </Link>
-            ))}
+        {/* Bottom Premium Action Buttons */}
+        <div className="space-y-4">
+          <div className="space-y-3">
+            {/* 1. AI Hair Try-On Button */}
             <Link
               href="/try"
-              onClick={() => setMobileMenuOpen(false)}
-              className="btn-premium w-full min-h-[44px] py-2.5 px-4 text-xs font-semibold gap-2"
+              className="group relative w-full flex items-center justify-between py-3 px-4 rounded-lg border border-[#C4A470]/45 bg-gradient-to-r from-[#C4A470]/15 via-[#C4A470]/10 to-transparent hover:border-[#C4A470] hover:from-[#C4A470]/25 text-white text-xs font-medium transition-all duration-300 shadow-[0_0_20px_-6px_rgba(196,164,112,0.3)]"
             >
-              <svg
-                className="w-4 h-4 shrink-0 text-[#E8C98A]"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-              </svg>
-              <span>ให้จองช่วยเลือกทรง</span>
+              <span className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E5C68E] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#C4A470]" />
+                </span>
+                <span className="text-[#F3DFB9] group-hover:text-white transition-colors">
+                  ให้ลุงช่วยเลือกทรง (AI)
+                </span>
+              </span>
+              <span className="text-[#C4A470] text-sm leading-none transition-transform duration-200 group-hover:translate-x-0.5">
+                ✦
+              </span>
+            </Link>
+
+            {/* 2. Primary Booking CTA Button */}
+            <Link
+              href="/book"
+              className="group relative overflow-hidden w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-lg bg-gradient-to-b from-[#D8BA84] to-[#B59156] hover:from-[#E2C692] hover:to-[#C09C61] text-[#14120E] font-bold text-xs tracking-[0.14em] uppercase ring-1 ring-[#F2DC9F]/50 shadow-[0_8px_24px_-4px_rgba(196,164,112,0.45)] hover:shadow-[0_10px_28px_-2px_rgba(196,164,112,0.65)] active:scale-[0.98] transition-all duration-300"
+            >
+              {/* Subtle Hover Shine Sweep */}
+              <span className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+              <span>จองคิวตัดผมทันที</span>
+              <span className="transition-transform duration-200 group-hover:translate-x-1">
+                →
+              </span>
             </Link>
           </div>
-        )}
-      </header>
-    );
-  }
 
-  return (
-    <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-4xl">
-      {/* Floating Pill */}
-      <div
-        className={`w-full h-[56px] px-3 rounded-full backdrop-blur-md border border-white/15 transition-colors duration-300 flex items-center justify-between gap-2 sm:gap-4 ${
-          scrolled ? "bg-[#07151A]/95 shadow-xl" : "bg-[#07151A]/40"
-        }`}
-      >
-        {/* Left: Wordmark + location with inline SVG scissors */}
-        <Link href="/" className="flex items-center gap-2 group shrink-0">
-          <svg
-            className="w-4 h-4 text-white shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="6" cy="6" r="3" />
-            <circle cx="6" cy="18" r="3" />
-            <line x1="20" y1="4" x2="8.12" y2="15.88" />
-            <line x1="14.47" y1="14.48" x2="20" y2="20" />
-            <line x1="8.12" y1="8.12" x2="12" y2="12" />
-          </svg>
-          <div className="flex flex-col leading-none">
-            <span className="text-white font-bold text-sm tracking-wide uppercase">
+          <div className="pt-4 border-t border-white/[0.08] text-[11px] text-white/45 space-y-1">
+            <p className="text-white/75 font-medium">{shop.shortAddress}</p>
+            <p>เปิดทุกวัน · โทร {shop.phone}</p>
+          </div>
+        </div>
+      </aside>
+
+      {/* ================= MOBILE / TABLET TOP BAR (< 1024px) ================= */}
+      <header className="lg:hidden sticky top-0 z-50 bg-[#161616]/95 backdrop-blur-md border-b border-white/[0.08] px-4 h-14 flex items-center justify-between">
+        <Link
+          href="/"
+          onClick={() => setMobileMenuOpen(false)}
+          className="flex items-center gap-2.5"
+        >
+          <img
+            src="/project-barber/hairstyles/logo.png"
+            alt="Veera Barber Logo"
+            className="w-8 h-8 object-contain invert mix-blend-screen shrink-0"
+          />
+          <div className="leading-none">
+            <span className="font-serif font-semibold tracking-[0.18em] text-sm text-white uppercase">
               VEERA BARBER
             </span>
-            <span className="text-white/60 text-[10px] hidden sm:block mt-0.5">
+            <span className="block text-[10px] text-[#C4A470] mt-0.5">
               แจ้งวัฒนะ 28 · นนทบุรี
             </span>
           </div>
         </Link>
 
-        {/* Center (desktop): 5 links, no underline animation, just opacity change on hover */}
-        <nav className="hidden lg:flex items-center gap-5">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-xs sm:text-sm font-medium text-white/70 hover:opacity-100 hover:text-white transition-opacity"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Right (desktop): AI link as .btn-premium + white .btn-primary "จองคิว" */}
-        <div className="hidden lg:flex items-center gap-2">
-          <Link
-            href="/try"
-            className="btn-premium text-xs sm:text-sm py-1.5! px-3.5! gap-2"
+        <div className="flex items-center gap-2">
+          <a
+            href={`tel:${shop.phone.replace(/-/g, "")}`}
+            className="px-2.5 py-1.5 rounded-md border border-white/15 text-white/80 hover:text-white text-[11px] font-medium"
           >
-            <svg
-              className="w-4 h-4 shrink-0 text-[#E8C98A]"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-            </svg>
-            <span>ให้ลุงช่วยเลือกทรง</span>
-          </Link>
-          <Link
-            href="/book"
-            className="btn-primary bg-white! text-[#07151A]! text-xs sm:text-sm py-1.5! px-4!"
-          >
-            จองคิว
-          </Link>
-        </div>
-
-        {/* Mobile: wordmark (left), "จองคิว" pill, and menu button */}
-        <div className="flex lg:hidden items-center gap-2">
-          <Link
-            href="/book"
-            className="btn-primary bg-white! text-[#07151A]! text-xs py-1.5! px-3.5!"
-          >
-            จองคิว
-          </Link>
+            โทรร้าน
+          </a>
           <button
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-2 rounded-md text-white/85 hover:text-white bg-white/[0.06] active:scale-95 transition-transform"
             aria-label="เปิดเมนู"
             aria-expanded={mobileMenuOpen}
           >
@@ -248,42 +163,56 @@ export default function Navbar() {
             )}
           </button>
         </div>
-      </div>
 
-      {/* Mobile: rounded panel under the pill with existing links */}
-      {mobileMenuOpen && (
-        <div className="w-full mt-2 rounded-[20px] bg-[#07151A]/95 backdrop-blur-md border border-white/15 p-4 shadow-xl lg:hidden flex flex-col gap-1">
-          <nav className="flex flex-col gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="pt-2 mt-2 border-t border-white/10 flex flex-col gap-2">
-            <Link
-              href="/try"
+        {/* Mobile Drawer */}
+        {mobileMenuOpen && (
+          <>
+            <div
               onClick={() => setMobileMenuOpen(false)}
-              className="btn-premium w-full min-h-[44px] py-2.5 px-4 text-xs sm:text-sm text-center gap-2"
-            >
-              <svg
-                className="w-4 h-4 shrink-0 text-[#E8C98A]"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-              </svg>
-              <span>ให้ลุงช่วยเลือกทรง</span>
-            </Link>
-          </div>
+              className="fixed inset-0 top-14 bg-black/65 backdrop-blur-xs z-40"
+            />
+            <div className="absolute top-14 left-0 right-0 z-50 bg-[#161616] border-b border-white/10 px-5 py-5 shadow-2xl flex flex-col gap-1.5 max-h-[calc(100svh-3.5rem)] overflow-y-auto">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-3 px-3.5 rounded-md text-sm font-medium text-white/85 hover:text-white active:bg-white/10 flex items-center justify-between"
+                >
+                  <span>{link.label}</span>
+                  <span className="text-white/35 text-xs">→</span>
+                </Link>
+              ))}
+
+              <div className="pt-3 mt-2 border-t border-white/10 text-xs text-white/55 px-3.5 space-y-1">
+                <p className="text-white/85 font-medium">{shop.address}</p>
+                <p>เปิดทุกวัน 08:30–21:00 น. · โทร {shop.phone}</p>
+              </div>
+            </div>
+          </>
+        )}
+      </header>
+
+      {/* ================= MOBILE STICKY BOTTOM BAR ================= */}
+      {!isBookingPage && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#161616]/95 backdrop-blur-md border-t border-white/10 px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] flex items-center gap-2.5 shadow-[0_-8px_24px_rgba(0,0,0,0.5)]">
+          <Link
+            href="/try"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg border border-[#C4A470]/45 bg-[#C4A470]/12 text-[#F3DFB9] active:scale-95 transition-transform text-xs font-medium"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C4A470] shrink-0" />
+            <span className="truncate">AI เลือกทรง</span>
+          </Link>
+
+          <Link
+            href="/book"
+            className="flex-[1.3] flex items-center justify-center gap-1 py-2.5 px-4 rounded-lg bg-gradient-to-b from-[#D8BA84] to-[#B59156] text-[#14120E] font-bold text-xs sm:text-sm ring-1 ring-[#F2DC9F]/50 shadow-[0_4px_16px_rgba(196,164,112,0.4)] active:scale-95 transition-transform"
+          >
+            <span>จองคิวทันที</span>
+            <span>→</span>
+          </Link>
         </div>
       )}
-    </header>
+    </>
   );
 }

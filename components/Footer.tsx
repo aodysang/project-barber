@@ -36,24 +36,11 @@ export default function Footer() {
           {/* Left: Existing brand name and description */}
           <div className="lg:col-span-1 space-y-4">
             <Link href="/" className="inline-flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent">
-                <svg
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="6" cy="6" r="3" />
-                  <circle cx="6" cy="18" r="3" />
-                  <line x1="20" y1="4" x2="8.12" y2="15.88" />
-                  <line x1="14.47" y1="14.48" x2="20" y2="20" />
-                  <line x1="8.12" y1="8.12" x2="12" y2="12" />
-                </svg>
-              </div>
+              <img
+                src="/project-barber/hairstyles/logo.png"
+                alt="Veera Barber Logo"
+                className="w-11 h-11 object-contain invert mix-blend-screen shrink-0 transition-transform duration-300 group-hover:scale-105"
+              />
               <div className="flex flex-col">
                 <span className="text-paper font-semibold tracking-widest uppercase text-sm">
                   VEERA BARBER
