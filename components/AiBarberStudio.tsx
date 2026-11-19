@@ -16,7 +16,7 @@ interface AnalysisData {
   recommendations: RecommendedStyle[];
 }
 
-const MAX_GEN_LIMIT = 999; // ปลดล็อกชั่วคราวสำหรับทดสอบ (เปลี่ยนกลับเป็น 2 เมื่อพร้อมใช้งานจริง)
+const MAX_GEN_LIMIT = 2; // จำกัดสิทธิ์ลูกค้าคนละ 2 รูป
 const STORAGE_KEY = 'veera_barber_gen_count_v1';
 
 // ย่อขนาดรูปให้คมชัดและรักษาสัดส่วนใบหน้าเดิม
@@ -171,7 +171,7 @@ export default function AiBarberStudio() {
     reader.readAsDataURL(file);
   };
 
-  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้าด้วย Gemini
+  // 3. ฟังก์ชันที่ 1: วิเคราะห์โครงหน้าด้วย Gemini (เน้นทรงผมชายเอเชีย/ไทย/เกาหลี/ญี่ปุ่นยุคปัจจุบัน)
   const analyzeFace = async () => {
     if (!capturedImage) return;
     setAnalyzing(true);
@@ -190,14 +190,17 @@ export default function AiBarberStudio() {
       const tinyImage = await resizeImage(capturedImage, 256);
       const base64Data = tinyImage.split(',')[1];
 
-      const promptText = `วิเคราะห์โครงหน้าของบุคคลในภาพนี้ แล้วตอบกลับเป็น JSON เท่านั้น ตามรูปแบบนี้:
+      const promptText = `คุณคือช่างตัดผมบาร์เบอร์ผู้เชี่ยวชาญทรงผมชายเอเชีย (ไทย เกาหลี ญี่ปุ่น) ยุคปัจจุบัน
+วิเคราะห์โครงหน้าของบุคคลในภาพนี้ แล้วแนะนำ 3 ทรงผมชายเอเชียสมัยใหม่ที่เข้ากับรูปหน้าและความหนาเส้นผมคนเอเชียมากที่สุด (เช่น Two-Block Cut, Korean Comma Hair, Asian Textured Crop, Drop Fade Quiff, Soft Side Part, Modern Mullet / Wolf Cut, Asian Ivy League) โดยหลีกเลี่ยงทรงผมแบบฝรั่งย้อนยุค
+
+ตอบกลับเป็น JSON เท่านั้น ตามรูปแบบนี้:
 {
   "faceShape": "ประเภทโครงหน้า เช่น หน้ารูปไข่ (Oval), หน้ารูปเพชร (Diamond), หน้ากลม (Round), หน้าเหลี่ยม (Square)",
   "faceDescription": "อธิบายจุดเด่นโครงหน้าสั้นๆ 1 ประโยค",
   "recommendations": [
-    { "name": "ชื่อทรงผมภาษาไทย 1", "englishName": "English Hairstyle Name 1", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
-    { "name": "ชื่อทรงผมภาษาไทย 2", "englishName": "English Hairstyle Name 2", "reason": "เหตุผลสั้นๆ 1 ประโยค" },
-    { "name": "ชื่อทรงผมภาษาไทย 3", "englishName": "English Hairstyle Name 3", "reason": "เหตุผลสั้นๆ 1 ประโยค" }
+    { "name": "ชื่อทรงผมฮิตในไทย/เอเชีย 1", "englishName": "Modern Asian Hairstyle Name 1 (เช่น Korean Two-Block Cut)", "reason": "เหตุผลที่เข้ากับโครงหน้าและเส้นผมคนเอเชีย 1 ประโยค" },
+    { "name": "ชื่อทรงผมฮิตในไทย/เอเชีย 2", "englishName": "Modern Asian Hairstyle Name 2", "reason": "เหตุผลที่เข้ากับโครงหน้าและเส้นผมคนเอเชีย 1 ประโยค" },
+    { "name": "ชื่อทรงผมฮิตในไทย/เอเชีย 3", "englishName": "Modern Asian Hairstyle Name 3", "reason": "เหตุผลที่เข้ากับโครงหน้าและเส้นผมคนเอเชีย 1 ประโยค" }
   ]
 }`;
 
@@ -279,7 +282,7 @@ export default function AiBarberStudio() {
     }
   };
 
-  // 4. ฟังก์ชันที่ 2: เรียก fal.ai (FLUX Pro Kontext) ล็อกใบหน้าและหนวดเคราตามต้นฉบับ 100% เปลี่ยนเฉพาะทรงผม
+  // 4. ฟังก์ชันที่ 2: เรียก fal.ai (FLUX Pro Kontext) ปรับจูนลักษณะเส้นผมและทรงผมแบบบาร์เบอร์เอเชีย/ไทย/เกาหลีสมัยใหม่
   const generateHairstyleImage = async (style: RecommendedStyle) => {
     if (!capturedImage) return;
 
@@ -309,7 +312,7 @@ export default function AiBarberStudio() {
         credentials: falKey,
       });
 
-      const prompt = `Edit ONLY the hair on top and sides of the head to give the person a realistic ${style.englishName} (${style.name}) haircut. Seamlessly blend the natural hairline and tapered side fade into the temples. Keep the person's exact original face, facial structure, jawline width, skin, eyes, eyebrows, nose, mouth, and exact facial hair (keep existing beard/mustache as-is, or keep clean-shaven if none) 100% identical to the original photo. Change ONLY the hairstyle.`;
+      const prompt = `Edit ONLY the hair on the head to give this East/Southeast Asian person a trendy contemporary Thai/Korean barbershop ${style.englishName} (${style.name}) haircut. Use authentic Asian straight-to-softly-textured dark hair strands with natural volume, soft matte styling, and a clean tapered low/mid side fade or neat two-block side trim tailored to an Asian head shape (avoid stiff Western pompadour or curly Western hair textures). Seamlessly blend the natural Asian hairline into the forehead and temples. Keep the person's exact original face, facial structure, jawline, skin tone, eyes, eyebrows, nose, mouth, and exact facial hair (keep existing beard/mustache as-is, or keep clean-shaven if none) 100% identical to the original photo. Change ONLY the hairstyle.`;
 
       const result = await fal.subscribe('fal-ai/flux-pro/kontext', {
         input: {
@@ -351,6 +354,31 @@ export default function AiBarberStudio() {
 
   return (
     <div className="w-full max-w-[960px] mx-auto flex flex-col gap-8 text-left">
+      {/* แถบแจ้งเงื่อนไขการทดลองใช้งานตั้งแต่ต้น */}
+      <div className="rounded-2xl border border-[#E8C98A]/40 bg-[#E8C98A]/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-start sm:items-center gap-3">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#E8C98A] text-[#081416] text-xs font-bold shrink-0 mt-0.5 sm:mt-0">
+            !
+          </span>
+          <p className="text-xs sm:text-sm text-[#F4F1EC] leading-relaxed">
+            <span className="font-semibold text-[#E8C98A]">เงื่อนไขบริการ AI จำลองทรงผม:</span>{' '}
+            วิเคราะห์โครงหน้าได้ไม่จำกัด และจำกัดสิทธิ์สร้างภาพจำลองทรงผม{' '}
+            <span className="underline font-semibold text-[#E8C98A]">สูงสุดท่านละ {MAX_GEN_LIMIT} รูป</span>
+          </p>
+        </div>
+        <span
+          className={`self-start sm:self-center shrink-0 px-3.5 py-1 rounded-full text-xs font-semibold border ${
+            isQuotaReached
+              ? 'bg-red-950/70 border-red-500/40 text-red-200'
+              : 'bg-[#081416]/80 border-[#E8C98A]/50 text-[#E8C98A]'
+          }`}
+        >
+          {isQuotaReached
+            ? `ใช้สิทธิ์ครบ ${MAX_GEN_LIMIT}/${MAX_GEN_LIMIT} รูปแล้ว`
+            : `สิทธิ์คงเหลือ ${remainingQuota}/${MAX_GEN_LIMIT} รูป`}
+        </span>
+      </div>
+
       {/* สเต็ปที่ 1: ถ่ายรูป / อัปโหลดใบหน้า พร้อมกรอบไกด์ระยะใบหน้าและพื้นที่เหนือหัว */}
       <section className="rounded-[24px] border border-[rgba(232,201,138,0.28)] bg-[rgba(255,255,255,0.03)] backdrop-blur-md p-6 sm:p-8">
         <div className="flex items-center justify-between mb-6">
@@ -415,7 +443,7 @@ export default function AiBarberStudio() {
             </div>
 
             <p className="text-xs text-[rgba(244,241,236,0.65)] text-center max-w-md">
-              * แนะนำให้หันหน้าตรงในที่แสงสว่างสม่ำเสมอ และเว้นพื้นที่ว่างเหนือศีรษะตามเส้นประ เพื่อให้ AI จำลองทรงผมได้สมจริงที่สุด
+              แนะนำให้หันหน้าตรงในที่แสงสว่างสม่ำเสมอ และเว้นพื้นที่ว่างเหนือศีรษะตามเส้นประ เพื่อให้ AI จำลองทรงผมได้สมจริงที่สุด
             </p>
 
             <div className="flex flex-wrap justify-center gap-3">
@@ -459,7 +487,7 @@ export default function AiBarberStudio() {
             />
             <div className="flex-1 flex flex-col items-start gap-4">
               <p className="text-sm sm:text-base text-[rgba(244,241,236,0.8)] leading-relaxed">
-                ระบบบันทึกรูปใบหน้าของคุณเรียบร้อยแล้ว กดปุ่มด้านล่างเพื่อให้ลุง AI วิเคราะห์รูปทรงใบหน้าและคัดเลือกทรงผมที่เหมาะสมที่สุดให้ครับ
+                ระบบบันทึกรูปใบหน้าของคุณเรียบร้อยแล้ว กดปุ่มด้านล่างเพื่อให้ลุง AI วิเคราะห์รูปทรงใบหน้าและคัดเลือกทรงผมสไตล์เอเชียที่เหมาะสมที่สุดให้ครับ
               </p>
               <button
                 onClick={analyzeFace}
@@ -500,11 +528,33 @@ export default function AiBarberStudio() {
             </div>
 
             <div className="shrink-0 flex flex-col items-start sm:items-end gap-1.5">
-              <div className="px-3.5 py-1.5 rounded-full text-xs font-semibold border bg-[#E8C98A]/10 border-[#E8C98A]/40 text-[#E8C98A]">
-                โหมดทดสอบ (สร้างไปแล้ว {usedCount} รูป)
+              <div
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border ${
+                  isQuotaReached
+                    ? 'bg-red-950/60 border-red-500/40 text-red-200'
+                    : 'bg-[#E8C98A]/10 border-[#E8C98A]/40 text-[#E8C98A]'
+                }`}
+              >
+                {isQuotaReached
+                  ? `ใช้สิทธิ์ครบ ${MAX_GEN_LIMIT} รูปแล้ว`
+                  : `เหลือสิทธิ์สร้างภาพอีก ${remainingQuota} / ${MAX_GEN_LIMIT} รูป`}
               </div>
             </div>
           </div>
+
+          {isQuotaReached && (
+            <div className="p-4 rounded-xl bg-red-950/50 border border-red-500/40 text-red-200 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <span>
+                คุณใช้สิทธิ์สร้างภาพจำลองครบ {MAX_GEN_LIMIT} รูปต่อท่านเรียบร้อยแล้ว หากต้องการตัดทรงที่แนะนำสามารถจองคิวกับช่างได้เลยครับ
+              </span>
+              <Link
+                href="/book"
+                className="shrink-0 px-5 py-2 rounded-full bg-[#E8C98A] text-[#081416] text-xs font-bold hover:bg-[#f3d8a0] transition text-center"
+              >
+                จองคิวตัดผม →
+              </Link>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {analysisData.recommendations?.map((style, idx) => {
@@ -530,7 +580,11 @@ export default function AiBarberStudio() {
                     disabled={isButtonDisabled}
                     className="w-full py-2.5 px-4 rounded-full bg-[rgba(232,201,138,0.15)] border border-[#E8C98A] text-[#E8C98A] font-semibold text-sm hover:bg-[#E8C98A] hover:text-[#081416] transition disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    {isGeneratingThis ? 'กำลัง Generate ภาพ...' : 'Generate รูปทรงนี้'}
+                    {isGeneratingThis
+                      ? 'กำลัง Generate ภาพ...'
+                      : isQuotaReached
+                        ? 'ใช้สิทธิ์ครบ 2 รูปแล้ว'
+                        : 'Generate รูปทรงนี้'}
                   </button>
                 </div>
               );
